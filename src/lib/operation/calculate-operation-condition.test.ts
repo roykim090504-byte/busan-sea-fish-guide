@@ -27,7 +27,7 @@ describe("조업 환경 참고 지표", () => {
   it("풍랑주의보 수준의 풍속은 출항 재검토로 계산한다", () => {
     const result = calculateOperationCondition({ ...calmObservation, windSpeed: 14 }, now);
     expect(result.level).toBe("reconsider");
-    expect(result.score).toBeLessThan(20);
+    expect(result.score).toBeLessThan(28);
   });
 
   it("풍랑주의보 수준의 파고는 출항 재검토로 계산한다", () => {
@@ -36,16 +36,25 @@ describe("조업 환경 참고 지표", () => {
 
   it("풍속이나 파고가 누락되면 양호 단계로 표시하지 않는다", () => {
     const result = calculateOperationCondition({ ...calmObservation, waveHeight: null }, now);
-    expect(result.score).toBeLessThan(65);
+    expect(result.score).toBeLessThan(52);
     expect(result.warnings).toContain("파고 데이터가 없습니다.");
   });
 
-  it("예시 데이터는 주의 단계보다 높아지지 않는다", () => {
-    expect(calculateOperationCondition({ ...calmObservation, source: "sample" }, now).score).toBeLessThan(65);
+  it("약간 강한 바람에서는 매우 양호로 표시하지 않는다", () => {
+    expect(calculateOperationCondition({ ...calmObservation, windSpeed: 4 }, now).level).not.toBe("very-good");
   });
 
-  it("오래된 관측은 어려움 단계보다 높아지지 않는다", () => {
+  it("강한 바람 또는 높은 물결에서는 어려움보다 높아지지 않는다", () => {
+    expect(calculateOperationCondition({ ...calmObservation, windSpeed: 9 }, now).score).toBeLessThan(52);
+    expect(calculateOperationCondition({ ...calmObservation, waveHeight: 2 }, now).score).toBeLessThan(52);
+  });
+
+  it("예시 데이터는 어려움 단계보다 높아지지 않는다", () => {
+    expect(calculateOperationCondition({ ...calmObservation, source: "sample" }, now).score).toBeLessThan(52);
+  });
+
+  it("12시간이 지난 관측은 출항 재검토로 계산한다", () => {
     const result = calculateOperationCondition({ ...calmObservation, observedAt: "2026-07-27T09:30:00+09:00" }, now);
-    expect(result.score).toBeLessThan(45);
+    expect(result.level).toBe("reconsider");
   });
 });

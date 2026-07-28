@@ -16,29 +16,32 @@ const OPERATION_WEIGHTS: Record<OperationScoreKey, number> = {
 
 const scoreWind = (value: number | null) => {
   if (value === null) return 0;
-  if (value <= 4) return 100;
-  if (value <= 7) return 85;
-  if (value <= 10) return 60;
-  if (value < 14) return 25;
+  if (value < 3) return 100;
+  if (value < 4) return 95;
+  if (value < 6) return 80;
+  if (value < 9) return 55;
+  if (value < 12) return 25;
+  if (value < 14) return 10;
   return 0;
 };
 
 const scoreWave = (value: number | null) => {
   if (value === null) return 0;
-  if (value <= 0.5) return 100;
-  if (value <= 1) return 85;
-  if (value <= 1.5) return 65;
-  if (value <= 2) return 40;
-  if (value < 3) return 20;
+  if (value <= 0.3) return 100;
+  if (value <= 0.6) return 90;
+  if (value <= 1) return 75;
+  if (value < 1.5) return 55;
+  if (value < 2) return 35;
+  if (value < 3) return 15;
   return 0;
 };
 
 const scoreCurrent = (value: number | null) => {
   if (value === null) return 0;
-  if (value <= 0.4) return 95;
-  if (value <= 0.8) return 80;
-  if (value <= 1.2) return 60;
-  if (value <= 1.8) return 35;
+  if (value <= 0.3) return 95;
+  if (value <= 0.6) return 80;
+  if (value <= 1) return 55;
+  if (value <= 1.5) return 30;
   return 15;
 };
 
@@ -58,21 +61,21 @@ const observationAgeHours = (observedAt: string, now: Date) => {
 };
 
 const scoreFreshness = (hours: number) => {
-  if (hours <= 1) return 100;
-  if (hours <= 3) return 85;
-  if (hours <= 6) return 60;
-  if (hours <= 12) return 35;
+  if (hours <= 0.5) return 100;
+  if (hours <= 2) return 85;
+  if (hours <= 4) return 60;
+  if (hours <= 6) return 35;
   return 0;
 };
 
 const scoreToLevel = (score: number): OperationConditionLevel =>
-  score >= 80
+  score >= 88
     ? "very-good"
-    : score >= 65
+    : score >= 72
       ? "good"
-      : score >= 45
+      : score >= 52
         ? "caution"
-        : score >= 25
+        : score >= 28
           ? "difficult"
           : "reconsider";
 
@@ -108,14 +111,14 @@ export function calculateOperationCondition(
 
   if (observation.windSpeed === null) warnings.push("풍속 데이터가 없습니다.");
   else if (observation.windSpeed >= 14) reasons.push(`풍속 ${observation.windSpeed}m/s로 풍랑주의보 기준 수준입니다.`);
-  else if (observation.windSpeed > 10) reasons.push(`풍속 ${observation.windSpeed}m/s로 강한 바람에 대비가 필요합니다.`);
-  else if (observation.windSpeed <= 7) reasons.push(`풍속 ${observation.windSpeed}m/s로 비교적 잔잔한 편입니다.`);
-  else reasons.push(`풍속 ${observation.windSpeed}m/s로 주의가 필요합니다.`);
+  else if (observation.windSpeed >= 9) reasons.push(`풍속 ${observation.windSpeed}m/s로 강한 바람에 대비가 필요합니다.`);
+  else if (observation.windSpeed >= 4) reasons.push(`풍속 ${observation.windSpeed}m/s로 약간 강한 바람에 주의가 필요합니다.`);
+  else reasons.push(`풍속 ${observation.windSpeed}m/s로 비교적 잔잔한 편입니다.`);
 
   if (observation.waveHeight === null) warnings.push("파고 데이터가 없습니다.");
   else if (observation.waveHeight >= 3) reasons.push(`파고 ${observation.waveHeight}m로 풍랑주의보 기준 수준입니다.`);
   else if (observation.waveHeight >= 2) reasons.push(`파고 ${observation.waveHeight}m로 높은 물결에 대비가 필요합니다.`);
-  else if (observation.waveHeight <= 1) reasons.push(`파고 ${observation.waveHeight}m로 비교적 낮은 편입니다.`);
+  else if (observation.waveHeight <= 0.6) reasons.push(`파고 ${observation.waveHeight}m로 비교적 낮은 편입니다.`);
   else reasons.push(`파고 ${observation.waveHeight}m로 선박 규모에 따른 주의가 필요합니다.`);
 
   if (observation.currentSpeed === null) warnings.push("조류 데이터가 없습니다.");
@@ -128,18 +131,35 @@ export function calculateOperationCondition(
   const criticalMarineCondition =
     (observation.windSpeed !== null && observation.windSpeed >= 14)
     || (observation.waveHeight !== null && observation.waveHeight >= 3);
-  if (criticalMarineCondition) score = Math.min(score, 19);
+  if (criticalMarineCondition) score = Math.min(score, 27);
+  else {
+    const strongCondition =
+      (observation.windSpeed !== null && observation.windSpeed >= 9)
+      || (observation.waveHeight !== null && observation.waveHeight >= 2);
+    const cautionCondition =
+      (observation.windSpeed !== null && observation.windSpeed >= 6)
+      || (observation.waveHeight !== null && observation.waveHeight >= 1.5);
+    const lessCalmCondition =
+      (observation.windSpeed !== null && observation.windSpeed >= 4)
+      || (observation.waveHeight !== null && observation.waveHeight > 0.6);
+    if (strongCondition) score = Math.min(score, 51);
+    else if (cautionCondition) score = Math.min(score, 71);
+    else if (lessCalmCondition) score = Math.min(score, 87);
+  }
 
   const missingWindOrWave = [observation.windSpeed, observation.waveHeight].filter((value) => value === null).length;
-  if (missingWindOrWave === 2) score = Math.min(score, 19);
-  else if (missingWindOrWave === 1) score = Math.min(score, 64);
+  if (missingWindOrWave === 2) score = Math.min(score, 27);
+  else if (missingWindOrWave === 1) score = Math.min(score, 51);
 
   if (ageHours > 12) {
-    score = Math.min(score, 44);
+    score = Math.min(score, 27);
     warnings.push("관측 시각이 오래되어 최신 상황과 다를 수 있습니다.");
+  } else if (ageHours > 6) {
+    score = Math.min(score, 51);
+    warnings.push("관측 시각이 6시간 이상 지나 최신 상황과 다를 수 있습니다.");
   }
   if (observation.source === "sample") {
-    score = Math.min(score, 64);
+    score = Math.min(score, 51);
     warnings.push("예시 데이터이므로 실제 출항 판단에 사용할 수 없습니다.");
   }
 
