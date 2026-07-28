@@ -46,7 +46,7 @@ export function QuickViewDashboard({
 }: QuickViewDashboardProps) {
   const operation = calculateOperationCondition(observation);
   const emergency = createMarineEmergencySummary(observation);
-  const topFish = predictions.slice(0, 3);
+  const topFish = predictions.slice(0, 5);
   const missingCount = [
     observation.waterTemperature,
     observation.windSpeed,
@@ -189,7 +189,7 @@ export function QuickViewDashboard({
           <article className="quick-fish-panel">
             <div className="quick-card-heading">
               <Fish size={20} aria-hidden />
-              <h3>추천 어종 TOP 3</h3>
+              <h3>추천 어종 TOP 5</h3>
             </div>
             <ol>
               {topFish.map((fish, index) => (
