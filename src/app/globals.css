@@ -125,7 +125,11 @@ a { text-decoration: none; }
 .map-source { position: absolute; z-index: 500; right: 18px; bottom: 20px; border-radius: 999px; background: rgba(7,94,120,.92); color: white; padding: 8px 12px; font-size: 11px; font-weight: 900; }
 .map-area-buttons { position: absolute; z-index: 500; left: 50%; bottom: 18px; display: flex; max-width: min(620px, 56vw); transform: translateX(-50%); gap: 6px; overflow-x: auto; padding: 4px; scrollbar-width: none; }
 .map-area-buttons button { flex: 0 0 auto; border: 1px solid rgba(7,94,120,.18); border-radius: 999px; background: rgba(255,255,255,.94); color: #075e78; padding: 8px 11px; box-shadow: 0 4px 14px rgba(0,0,0,.1); font-size: 11px; font-weight: 900; cursor: pointer; }
+.map-area-buttons button.active { border-color: #075e78; background: #075e78; color: white; }
 .map-legend span { display: flex; align-items: center; gap: 7px; }.map-legend i { width: 10px; height: 10px; border-radius: 50%; }
+.map-legend small { max-width: 165px; color: #60757e; line-height: 1.45; }
+.map-legend .area-status-very-high { background: #1d4ed8; }.map-legend .area-status-high { background: #2563eb; }.map-legend .area-status-medium { background: #eab308; }.map-legend .area-status-low { background: #f97316; }
+.leaflet-interactive:focus { outline: 4px solid #f5c451; outline-offset: 2px; }
 .temperature-gradient { width: 148px; height: 10px; border-radius: 999px; background: linear-gradient(90deg, rgb(37,99,235), rgb(138,84,152), rgb(239,68,68)); box-shadow: inset 0 0 0 1px rgba(15,23,42,.1); }
 .temperature-labels { display: flex; justify-content: space-between; color: #526b7a; font-variant-numeric: tabular-nums; }
 .map-legend .temperature-missing { background: #94a3b8; }
@@ -136,6 +140,7 @@ a { text-decoration: none; }
 .map-data-grid b { color: #173b49; margin-top: 3px; font-size: 12px; }
 .map-fish-row { display: grid; grid-template-columns: 1fr auto auto; align-items: center; gap: 6px; padding: 10px 0; border-bottom: 1px solid #e4edef; font-size: 12px; }
 .map-fish-row > p { grid-column: 1 / -1; margin: 0; color: #61747c; }
+.map-boundary-note { margin: 15px 0 0; border-radius: 11px; background: #eef7f9; color: #526b76; padding: 10px 12px; font-size: 11px; line-height: 1.55; }
 .ranking-controls { display: flex; gap: 12px; margin: 28px 0 16px; }
 .ranking-controls label { flex: 1; }.ranking-controls label > span { display: block; font-size: 12px; font-weight: 800; margin-bottom: 6px; }
 .ranking-list { display: grid; gap: 9px; }
@@ -201,6 +206,6 @@ a { text-decoration: none; }
   .quick-metrics, .quick-judgement { padding: 16px; }.quick-metric-grid { grid-template-columns: 1fr 1fr; }.quick-metric-grid article > strong { font-size: 18px; }
   .quick-judgement-grid { grid-template-columns: 1fr; }
   .sub-header { padding: 20px 14px; min-height: 125px; }.sub-header .outline-button { font-size: 0; padding: 12px; }.map-wrap { height: calc(100vh - 165px); min-height: 540px; }
-  .map-sheet { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 72%; border-radius: 24px 24px 0 0; }.map-legend { bottom: auto; top: 14px; }.map-source { right: 12px; bottom: 62px; }.map-area-buttons { left: 10px; right: 10px; bottom: 12px; max-width: none; transform: none; }
+  .map-sheet { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 72%; border-radius: 24px 24px 0 0; }.map-legend { bottom: auto; top: 14px; max-height: 56%; overflow-y: auto; }.map-source { right: 12px; bottom: 62px; }.map-area-buttons { left: 10px; right: 10px; bottom: 12px; max-width: none; transform: none; }
   .ranking-controls { flex-direction: column; }.ranking-row { gap: 9px; padding: 13px 10px; }.fish-icon { display: none; }.ranking-score { min-width: 82px; }.ranking-row p { max-width: 180px; }
 }
