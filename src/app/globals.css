@@ -52,6 +52,18 @@ a { text-decoration: none; }
 .surface-card { padding: 24px; }
 .chart-legend { display: flex; flex-wrap: wrap; gap: 8px; }
 .chart-legend span { background: #f2f8fa; border-radius: 10px; padding: 8px 10px; font-size: 12px; }
+.chart-description { margin: 7px 0 0; color: #647780; font-size: 13px; }
+.environment-chart-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.environment-chart-card { min-width: 0; border: 1px solid #dfeaed; border-radius: 18px; background: #f9fcfd; padding: 16px; }
+.environment-chart-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 8px; }
+.environment-chart-header p { margin: 0 0 3px; color: #647780; font-size: 12px; font-weight: 800; }
+.environment-chart-header h3 { margin: 0; color: #153849; font-size: 19px; font-weight: 950; }
+.environment-chart-header > span { border-radius: 999px; background: white; padding: 6px 9px; box-shadow: inset 0 0 0 1px #dfeaed; font-size: 11px; font-weight: 900; white-space: nowrap; }
+.environment-line-chart { height: 210px; }
+.chart-average-note { display: flex; align-items: center; gap: 6px; margin: 3px 0 0; color: #647780; font-size: 11px; }
+.chart-average-note i { width: 14px; height: 2px; opacity: .55; }
+.chart-empty { min-height: 210px; display: grid; place-items: center; border-radius: 13px; background: #f2f6f7; color: #71838c; font-size: 13px; font-weight: 800; }
+.chart-prototype-note { margin: 16px 0 0; border-radius: 13px; background: #f2f8fa; color: #526b76; padding: 12px 14px; font-size: 12px; line-height: 1.6; }
 .notice { margin: 0 0 14px; border-radius: 14px; padding: 12px 14px; display: flex; gap: 9px; align-items: flex-start; font-size: 13px; font-weight: 700; }
 .notice-warning { background: #fff7ed; color: #9a3412; border: 1px solid #fed7aa; }
 .notice-info { background: #eff6ff; color: #1e40af; }
@@ -103,6 +115,7 @@ a { text-decoration: none; }
   .hero { padding: 0 16px 62px; }.hero-content { margin-top: 38px; grid-template-columns: 1fr; }.hero h1 { font-size: 42px; }.hero-content > div > p:last-child { font-size: 15px; }
   .nav-shell > div a { font-size: 0; padding: 9px; }.summary-grid { grid-template-columns: 1fr 1fr; }.page-shell { padding-inline: 14px; }
   .metric-card { min-height: 76px; padding: 12px; }.metric-card strong { font-size: 13px; }.detail-grid { grid-template-columns: 1fr; }
+  .environment-chart-grid { grid-template-columns: 1fr; }.environment-chart-card { padding: 13px; }.environment-line-chart { height: 190px; }
   .sub-header { padding: 20px 14px; min-height: 125px; }.sub-header .outline-button { font-size: 0; padding: 12px; }.map-wrap { height: calc(100vh - 165px); min-height: 540px; }
   .map-sheet { top: auto; left: 0; right: 0; bottom: 0; width: 100%; max-height: 72%; border-radius: 24px 24px 0 0; }.map-legend { bottom: auto; top: 14px; }.map-source { right: 12px; bottom: 62px; }.map-area-buttons { left: 10px; right: 10px; bottom: 12px; max-width: none; transform: none; }
   .ranking-controls { flex-direction: column; }.ranking-row { gap: 9px; padding: 13px 10px; }.fish-icon { display: none; }.ranking-score { min-width: 82px; }.ranking-row p { max-width: 180px; }
