@@ -1,0 +1,18 @@
+import type { FishCondition } from "@/types/fish";
+
+// 아래 환경 수치는 규칙 기반 프로토타입 계산을 위한 참고값이며,
+// 실제 어획을 보장하거나 공식 생태 기준을 뜻하지 않습니다.
+export const FISH_CONDITIONS: FishCondition[] = [
+  { fishId: "mackerel", fishName: "고등어", preferredWaterTemperature: { min: 15, max: 26, optimalMin: 20, optimalMax: 24 }, preferredWindSpeed: { min: 0, max: 8 }, preferredWaveHeight: { min: 0.2, max: 1.5 }, preferredCurrentSpeed: { min: 0.2, max: 0.9 }, preferredMonths: [5,6,7,8,9,10] },
+  { fishId: "hairtail", fishName: "갈치", preferredWaterTemperature: { min: 18, max: 27, optimalMin: 22, optimalMax: 25 }, preferredWindSpeed: { min: 0, max: 7 }, preferredWaveHeight: { min: 0.2, max: 1.3 }, preferredCurrentSpeed: { min: 0.2, max: 0.8 }, preferredMonths: [7,8,9,10,11] },
+  { fishId: "horse-mackerel", fishName: "전갱이", preferredWaterTemperature: { min: 16, max: 25, optimalMin: 20, optimalMax: 23 }, preferredWindSpeed: { min: 0, max: 8 }, preferredWaveHeight: { min: 0.1, max: 1.4 }, preferredCurrentSpeed: { min: 0.15, max: 0.85 }, preferredMonths: [5,6,7,8,9,10] },
+  { fishId: "anchovy", fishName: "멸치", preferredWaterTemperature: { min: 13, max: 24, optimalMin: 18, optimalMax: 22 }, preferredWindSpeed: { min: 0, max: 7 }, preferredWaveHeight: { min: 0.1, max: 1.2 }, preferredCurrentSpeed: { min: 0.2, max: 0.9 }, preferredMonths: [3,4,5,6,7,8,9] },
+  { fishId: "flounder", fishName: "도다리", preferredWaterTemperature: { min: 10, max: 22, optimalMin: 14, optimalMax: 19 }, preferredWindSpeed: { min: 0, max: 6 }, preferredWaveHeight: { min: 0.1, max: 1.0 }, preferredCurrentSpeed: { min: 0.1, max: 0.6 }, preferredMonths: [2,3,4,5,11,12] },
+  { fishId: "halibut", fishName: "광어", preferredWaterTemperature: { min: 12, max: 24, optimalMin: 17, optimalMax: 21 }, preferredWindSpeed: { min: 0, max: 7 }, preferredWaveHeight: { min: 0.1, max: 1.2 }, preferredCurrentSpeed: { min: 0.1, max: 0.7 }, preferredMonths: [4,5,6,9,10,11] },
+  { fishId: "sea-bass", fishName: "농어", preferredWaterTemperature: { min: 15, max: 27, optimalMin: 20, optimalMax: 24 }, preferredWindSpeed: { min: 0, max: 8 }, preferredWaveHeight: { min: 0.2, max: 1.6 }, preferredCurrentSpeed: { min: 0.25, max: 1.0 }, preferredMonths: [5,6,7,8,9,10] },
+  { fishId: "black-porgy", fishName: "감성돔", preferredWaterTemperature: { min: 12, max: 24, optimalMin: 17, optimalMax: 21 }, preferredWindSpeed: { min: 0, max: 7 }, preferredWaveHeight: { min: 0.1, max: 1.3 }, preferredCurrentSpeed: { min: 0.2, max: 0.7 }, preferredMonths: [3,4,5,9,10,11] },
+  { fishId: "red-seabream", fishName: "참돔", preferredWaterTemperature: { min: 14, max: 25, optimalMin: 18, optimalMax: 22 }, preferredWindSpeed: { min: 0, max: 7 }, preferredWaveHeight: { min: 0.2, max: 1.4 }, preferredCurrentSpeed: { min: 0.25, max: 0.9 }, preferredMonths: [4,5,6,9,10,11] },
+  { fishId: "squid", fishName: "오징어", preferredWaterTemperature: { min: 13, max: 24, optimalMin: 17, optimalMax: 21 }, preferredWindSpeed: { min: 0, max: 6 }, preferredWaveHeight: { min: 0.1, max: 1.1 }, preferredCurrentSpeed: { min: 0.15, max: 0.75 }, preferredMonths: [5,6,7,10,11,12] },
+  { fishId: "yellowtail", fishName: "방어", preferredWaterTemperature: { min: 14, max: 23, optimalMin: 17, optimalMax: 20 }, preferredWindSpeed: { min: 0, max: 9 }, preferredWaveHeight: { min: 0.3, max: 1.8 }, preferredCurrentSpeed: { min: 0.3, max: 1.1 }, preferredMonths: [10,11,12,1,2] },
+  { fishId: "mullet", fishName: "숭어", preferredWaterTemperature: { min: 10, max: 26, optimalMin: 16, optimalMax: 22 }, preferredWindSpeed: { min: 0, max: 8 }, preferredWaveHeight: { min: 0.1, max: 1.4 }, preferredCurrentSpeed: { min: 0.1, max: 0.8 }, preferredMonths: [2,3,4,5,9,10,11] },
+];
