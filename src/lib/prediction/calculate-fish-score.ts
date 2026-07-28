@@ -11,17 +11,35 @@ export const SCORE_WEIGHTS: Record<ScoreKey, number> = {
 };
 
 const rangeScore = (value: number, range: Range) => {
-  if (value >= range.min && value <= range.max) return 100;
   const width = Math.max(range.max - range.min, 0.1);
+  const center = (range.min + range.max) / 2;
+  const halfWidth = width / 2;
+  if (value >= range.min && value <= range.max) {
+    const distanceFromCenter = Math.abs(value - center) / halfWidth;
+    return clamp(100 - distanceFromCenter * 18);
+  }
   const distance = value < range.min ? range.min - value : value - range.max;
-  return clamp(100 - (distance / width) * 100);
+  return clamp(82 - (distance / width) * 110);
 };
 
 const temperatureScore = (value: number, fish: FishCondition) => {
   const range = fish.preferredWaterTemperature;
-  if (value >= range.optimalMin && value <= range.optimalMax) return 100;
-  if (value < range.optimalMin) return clamp(100 - ((range.optimalMin - value) / Math.max(range.optimalMin - range.min, 1)) * 65);
-  return clamp(100 - ((value - range.optimalMax) / Math.max(range.max - range.optimalMax, 1)) * 65);
+  if (value >= range.optimalMin && value <= range.optimalMax) {
+    const optimalCenter = (range.optimalMin + range.optimalMax) / 2;
+    const optimalHalfWidth = Math.max((range.optimalMax - range.optimalMin) / 2, 0.5);
+    return clamp(100 - (Math.abs(value - optimalCenter) / optimalHalfWidth) * 10);
+  }
+  if (value >= range.min && value < range.optimalMin) {
+    const ratio = (range.optimalMin - value) / Math.max(range.optimalMin - range.min, 1);
+    return clamp(90 - ratio * 45);
+  }
+  if (value > range.optimalMax && value <= range.max) {
+    const ratio = (value - range.optimalMax) / Math.max(range.max - range.optimalMax, 1);
+    return clamp(90 - ratio * 45);
+  }
+  const distance = value < range.min ? range.min - value : value - range.max;
+  const totalWidth = Math.max(range.max - range.min, 1);
+  return clamp(45 - (distance / totalWidth) * 100);
 };
 
 export const scoreToLevel = (score: number): SuitabilityLevel =>
@@ -33,7 +51,7 @@ export function calculateFishScore(
   now = new Date(),
 ): FishPrediction {
   const month = now.getMonth() + 1;
-  const componentScores: Partial<Record<ScoreKey, number>> = { season: fish.preferredMonths.includes(month) ? 100 : 25 };
+  const componentScores: Partial<Record<ScoreKey, number>> = { season: fish.preferredMonths.includes(month) ? 92 : 20 };
   const missingData: string[] = [];
 
   if (observation.waterTemperature === null) missingData.push("수온");
