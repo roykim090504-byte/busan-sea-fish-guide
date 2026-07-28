@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useMemo, useState } from "react";
-import { Fish, Map, Waves } from "lucide-react";
+import { Fish, LayoutDashboard, ListTree, Map, Waves } from "lucide-react";
 import { DEFAULT_AREA_ID } from "@/data/sea-areas";
 import { calculatePredictions } from "@/lib/prediction/calculate-fish-score";
 import { isStaleObservation } from "@/lib/prediction/calculate-confidence";
@@ -14,9 +14,11 @@ import { EnvironmentChart } from "./EnvironmentChart";
 import { DataWarning } from "../common/DataWarning";
 import { OperationConditionCard } from "./OperationConditionCard";
 import { MarineEmergencyPanel } from "./MarineEmergencyPanel";
+import { QuickViewDashboard } from "./QuickViewDashboard";
 
 export function Dashboard() {
   const [areaId, setAreaId] = useState(DEFAULT_AREA_ID);
+  const [viewMode, setViewMode] = useState<"quick" | "detail">("detail");
   const { observations, source, warnings, loading } = useMarineObservations();
   const observation =
     observations.find((item) => item.areaId === areaId) ?? observations[0];
@@ -50,6 +52,27 @@ export function Dashboard() {
               <Fish size={17} />
               전체 순위
             </Link>
+            <button
+              type="button"
+              className="view-mode-button"
+              onClick={() =>
+                setViewMode((current) =>
+                  current === "detail" ? "quick" : "detail",
+                )
+              }
+              aria-pressed={viewMode === "quick"}
+            >
+              {viewMode === "quick" ? (
+                <ListTree size={17} aria-hidden />
+              ) : (
+                <LayoutDashboard size={17} aria-hidden />
+              )}
+              <span>
+                {viewMode === "quick"
+                  ? "기존 화면으로 돌아가기"
+                  : "간편하게 보기"}
+              </span>
+            </button>
           </div>
         </nav>
         <div className="hero-content">
@@ -94,14 +117,25 @@ export function Dashboard() {
           </DataWarning>
         )}
 
-        <MarineSummary observation={observation} />
-        <OperationConditionCard observation={observation} />
-        <MarineEmergencyPanel observation={observation} />
-        <TopFishCards
-          predictions={predictions}
-          observation={observation}
-        />
-        <EnvironmentChart observation={observation} />
+        {viewMode === "quick" ? (
+          <QuickViewDashboard
+            areaId={areaId}
+            observation={observation}
+            predictions={predictions}
+            onAreaChange={setAreaId}
+          />
+        ) : (
+          <>
+            <MarineSummary observation={observation} />
+            <OperationConditionCard observation={observation} />
+            <MarineEmergencyPanel observation={observation} />
+            <TopFishCards
+              predictions={predictions}
+              observation={observation}
+            />
+            <EnvironmentChart observation={observation} />
+          </>
+        )}
 
         <Link className="wide-link" href={`/area/${areaId}`}>
           12개 전체 어종 순위 보기
