@@ -4,16 +4,18 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { calculatePredictions } from "@/lib/prediction/calculate-fish-score";
 import { useMarineObservations } from "@/hooks/useMarineObservations";
 import type { MarineObservation } from "@/types/marine";
-import type { SuitabilityLevel } from "@/types/prediction";
 import { AreaBottomSheet } from "./AreaBottomSheet";
 
-const colors: Record<SuitabilityLevel, string> = {
-  "very-high": "#1458b8",
-  high: "#1687c4",
-  medium: "#eab308",
-  low: "#f97316",
-  "very-low": "#94a3b8",
-};
+const LOW_TEMPERATURE_COLOR = [37, 99, 235] as const;
+const HIGH_TEMPERATURE_COLOR = [239, 68, 68] as const;
+
+function getWaterTemperatureColor(temperature: number, min: number, max: number) {
+  const ratio = min === max ? 0.5 : Math.min(1, Math.max(0, (temperature - min) / (max - min)));
+  const [red, green, blue] = LOW_TEMPERATURE_COLOR.map((channel, index) =>
+    Math.round(channel + (HIGH_TEMPERATURE_COLOR[index] - channel) * ratio),
+  );
+  return `rgb(${red}, ${green}, ${blue})`;
+}
 
 export default function BusanSeaMap() {
   const [selected, setSelected] = useState<MarineObservation | null>(null);
@@ -24,6 +26,14 @@ export default function BusanSeaMap() {
   const leafletRef = useRef<typeof import("leaflet") | null>(null);
   const { observations, source, loading } = useMarineObservations();
   const predictionMap = useMemo(() => new Map(observations.map((observation) => [observation.areaId, calculatePredictions(observation)])), [observations]);
+  const temperatureRange = useMemo(() => {
+    const temperatures = observations.flatMap((observation) =>
+      observation.waterTemperature === null ? [] : [observation.waterTemperature],
+    );
+    return temperatures.length === 0
+      ? null
+      : { min: Math.min(...temperatures), max: Math.max(...temperatures) };
+  }, [observations]);
 
   useEffect(() => {
     let cancelled = false;
@@ -71,12 +81,15 @@ export default function BusanSeaMap() {
     observations.forEach((observation) => {
       const top = predictionMap.get(observation.areaId)?.[0];
       if (!top) return;
-      const insufficient = observation.waterTemperature === null || top.confidence === "low";
+      const waterTemperature = observation.waterTemperature;
+      const hasTemperature = waterTemperature !== null && temperatureRange !== null;
       const marker = L.circleMarker([observation.latitude, observation.longitude], {
         radius: 13,
         color: "#fff",
         weight: 3,
-        fillColor: insufficient ? "#94a3b8" : colors[top.level],
+        fillColor: hasTemperature
+          ? getWaterTemperatureColor(waterTemperature, temperatureRange.min, temperatureRange.max)
+          : "#94a3b8",
         fillOpacity: 1,
       });
       const tooltip = document.createElement("div");
@@ -85,12 +98,12 @@ export default function BusanSeaMap() {
       tooltip.append(title, document.createElement("br"));
       tooltip.append(`수온 ${observation.waterTemperature === null ? "없음" : `${observation.waterTemperature}°C`}`);
       tooltip.append(document.createElement("br"));
-      tooltip.append(insufficient ? "데이터 부족" : `${top.fishName} · ${top.suitabilityScore}점`);
+      tooltip.append(observation.waterTemperature === null ? "수온 데이터 부족" : `${top.fishName} · ${top.suitabilityScore}점`);
       marker.bindTooltip(tooltip, { direction: "top", offset: [0, -10], opacity: 1 });
       marker.on("click", () => setSelected(observation));
       marker.addTo(markerLayer);
     });
-  }, [mapReady, observations, predictionMap]);
+  }, [mapReady, observations, predictionMap, temperatureRange]);
 
-  return <div className="map-wrap"><div ref={mapElementRef} className="sea-map" role="application" aria-label="부산 앞바다 해역 지도" />{!mapReady && <div className="map-loading" role="status">지도를 불러오는 중입니다.</div>}<div className="map-source">{loading ? "관측 데이터 갱신 중" : source === "live" ? "최신 관측 데이터" : "예시 데이터"}</div><div className="map-legend"><b>환경 적합도</b><span><i className="bg-blue-700" />매우 높음</span><span><i className="bg-sky-500" />높음</span><span><i className="bg-yellow-500" />보통</span><span><i className="bg-orange-500" />낮음</span><span><i className="bg-slate-400" />데이터 부족</span></div><div className="map-area-buttons" aria-label="해역 바로 선택">{observations.map((observation) => <button key={observation.areaId} onClick={() => setSelected(observation)}>{observation.areaName}</button>)}</div>{selected && <AreaBottomSheet observation={selected} predictions={predictionMap.get(selected.areaId)!} onClose={() => setSelected(null)} />}</div>;
+  return <div className="map-wrap"><div ref={mapElementRef} className="sea-map" role="application" aria-label="부산 앞바다 해역 지도" />{!mapReady && <div className="map-loading" role="status">지도를 불러오는 중입니다.</div>}<div className="map-source">{loading ? "관측 데이터 갱신 중" : source === "live" ? "최신 관측 데이터" : "예시 데이터"}</div><div className="map-legend"><b>수온 색상</b><div className="temperature-gradient" aria-hidden="true" /><div className="temperature-labels"><span>{temperatureRange ? `${temperatureRange.min}°C` : "저수온"}</span><span>{temperatureRange ? `${temperatureRange.max}°C` : "고수온"}</span></div><span><i className="temperature-missing" />수온 데이터 없음</span></div><div className="map-area-buttons" aria-label="해역 바로 선택">{observations.map((observation) => <button key={observation.areaId} onClick={() => setSelected(observation)}>{observation.areaName}</button>)}</div>{selected && <AreaBottomSheet observation={selected} predictions={predictionMap.get(selected.areaId)!} onClose={() => setSelected(null)} />}</div>;
 }
