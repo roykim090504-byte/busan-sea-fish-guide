@@ -1,4 +1,5 @@
 import type { MarineObservation } from "@/types/marine";
+import { floorToWholeHour } from "@/lib/time/normalize-marine-time";
 
 export type EnvironmentMetricKey =
   | "waterTemperature"
@@ -23,8 +24,7 @@ const METRIC_SETTINGS: Record<EnvironmentMetricKey, { amplitude: number; decimal
 
 const formatKstTime = (date: Date) =>
   new Intl.DateTimeFormat("ko-KR", {
-    hour: "2-digit",
-    minute: "2-digit",
+    hour: "numeric",
     hour12: false,
     timeZone: "Asia/Seoul",
   }).format(date);
@@ -36,7 +36,8 @@ export function createTwoHourTrend(
   const latestValue = observation[metric];
   if (latestValue === null) return [];
 
-  const parsedTime = Date.parse(observation.observedAt);
+  const normalizedTime = floorToWholeHour(observation.observedAt);
+  const parsedTime = Date.parse(normalizedTime);
   const latestTime = new Date(Number.isNaN(parsedTime) ? 0 : parsedTime);
   const { amplitude, decimals } = METRIC_SETTINGS[metric];
 

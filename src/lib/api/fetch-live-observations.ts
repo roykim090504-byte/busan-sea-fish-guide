@@ -1,6 +1,7 @@
 import { MARINE_OBSERVATIONS } from "@/data/marine-observations";
 import { BUSAN_OBSERVATION_STATIONS } from "@/data/observation-stations";
 import { SEA_AREAS } from "@/data/sea-areas";
+import { normalizeMarineApiResponseTimes } from "@/lib/time/normalize-marine-time";
 import type { MarineApiResponse, MarineObservation } from "@/types/marine";
 import { toKmaGrid } from "./kma-grid";
 
@@ -77,7 +78,7 @@ async function fetchWeather(latitude: number, longitude: number, key: string) {
 const distance = (a: { latitude: number; longitude: number }, b: { lat: number; lot: number }) =>
   Math.hypot(a.latitude - b.lat, (a.longitude - b.lot) * Math.cos(a.latitude * Math.PI / 180));
 
-const fallbackResponse = (warning: string): MarineApiResponse => ({
+const fallbackResponse = (warning: string): MarineApiResponse => normalizeMarineApiResponseTimes({
   observations: MARINE_OBSERVATIONS.map((item) => ({ ...item, source: "sample" as const })),
   source: "sample",
   fetchedAt: new Date().toISOString(),
@@ -109,13 +110,13 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
         source: "live", stationName: buoy.obsvtrNm,
       };
     }));
-    return {
+    return normalizeMarineApiResponseTimes({
       observations,
       source: "live",
       fetchedAt: new Date().toISOString(),
       warnings: observations.some((item) => [item.waterTemperature, item.windSpeed, item.waveHeight, item.currentSpeed].some((value) => value === null))
         ? ["일부 관측소에서 제공하지 않는 항목은 데이터 없음으로 표시합니다."] : [],
-    };
+    });
   } catch {
     return fallbackResponse("실시간 API 연결에 실패해 예시 데이터를 표시합니다.");
   }

@@ -22,6 +22,8 @@ describe("2시간 간격 환경 추세", () => {
     const points = createTwoHourTrend(observation, "waterTemperature");
     expect(points).toHaveLength(13);
     expect(Date.parse(points[1].observedAt) - Date.parse(points[0].observedAt)).toBe(2 * 60 * 60 * 1000);
+    expect(new Date(points[0].observedAt).getUTCMinutes()).toBe(0);
+    expect(points.every((point) => point.time.includes("25") === false)).toBe(true);
     expect(points.at(-1)?.value).toBe(observation.waterTemperature);
   });
 
