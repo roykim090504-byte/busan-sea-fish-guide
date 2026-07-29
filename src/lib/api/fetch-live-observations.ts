@@ -192,10 +192,14 @@ async function fetchKmaSeaHistory(key: string): Promise<Record<string, MarineHis
   const latest = new Date();
   latest.setMinutes(0, 0, 0);
   const requestTimes = Array.from({ length: 13 }, (_, index) => new Date(latest.getTime() - (12 - index) * 2 * 60 * 60 * 1000));
-  const snapshots = await Promise.all(requestTimes.map(async (time) => ({
-    time,
-    observations: await fetchKmaSeaObservations(key, time).catch(() => []),
-  })));
+  const snapshots: { time: Date; observations: KmaSeaObservation[] }[] = [];
+  for (let start = 0; start < requestTimes.length; start += 3) {
+    const batch = await Promise.all(requestTimes.slice(start, start + 3).map(async (time) => ({
+      time,
+      observations: await fetchKmaSeaObservations(key, time).catch(() => []),
+    })));
+    snapshots.push(...batch);
+  }
 
   return Object.fromEntries(SEA_AREAS.map((area) => [area.id, snapshots.map(({ time, observations }) => {
     const nearby = [...observations]
