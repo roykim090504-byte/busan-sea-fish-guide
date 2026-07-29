@@ -117,6 +117,27 @@ async function fetchWeather(latitude: number, longitude: number, key: string) {
   };
 }
 
+const khoaObservationDate = (date: Date) => {
+  const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return `${shifted.getUTCFullYear()}${String(shifted.getUTCMonth() + 1).padStart(2, "0")}${String(shifted.getUTCDate()).padStart(2, "0")}`;
+};
+
+async function fetchBuoyHistory(code: string, key: string, observedDate: string): Promise<BuoyItem[]> {
+  const url = new URL(KHOA_URL);
+  url.search = new URLSearchParams({
+    serviceKey: key,
+    type: "json",
+    obsCode: code,
+    obsDate: observedDate,
+    interval: "120",
+    numOfRows: "200",
+  }).toString();
+  const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } });
+  if (!response.ok) return [];
+  const json = await response.json() as { body?: { items?: { item?: BuoyItem[] } } };
+  return json.body?.items?.item ?? [];
+}
+
 const kmaSeaObservationTime = (date = new Date()) => {
   const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000);
   return `${shifted.getUTCFullYear()}${String(shifted.getUTCMonth() + 1).padStart(2, "0")}${String(shifted.getUTCDate()).padStart(2, "0")}${String(shifted.getUTCHours()).padStart(2, "0")}00`;
@@ -198,6 +219,33 @@ const distance = (a: { latitude: number; longitude: number }, b: { lat: number; 
 const kmaSeaObservationDistance = (area: { latitude: number; longitude: number }, observation: KmaSeaObservation) =>
   Math.hypot(area.latitude - observation.latitude, (area.longitude - observation.longitude) * Math.cos(area.latitude * Math.PI / 180));
 
+const parseBuoyObservedAt = (value: string) => Date.parse(`${value.replace(" ", "T")}:00+09:00`);
+
+async function fetchKhoaCurrentHistory(key: string): Promise<Record<string, (number | null)[]>> {
+  const latest = new Date();
+  latest.setMinutes(0, 0, 0);
+  const targetTimes = Array.from({ length: 13 }, (_, index) => new Date(latest.getTime() - (12 - index) * 2 * 60 * 60 * 1000));
+  const dates = [...new Set(targetTimes.map(khoaObservationDate))];
+  const stationRecords = await Promise.all(BUSAN_OBSERVATION_STATIONS.map(async (station) => ({
+    station,
+    records: (await Promise.all(dates.map((date) => fetchBuoyHistory(station.code, key, date).catch(() => [])))).flat(),
+  })));
+
+  return Object.fromEntries(SEA_AREAS.map((area) => [area.id, targetTimes.map((targetTime) => {
+    const candidates = stationRecords.flatMap(({ station, records }) => records.map((record) => ({ station, record })));
+    const matching = candidates
+      .map(({ station, record }) => ({
+        distance: distance(area, { lat: numberOrNull(record.lat) ?? station.latitude, lot: numberOrNull(record.lot) ?? station.longitude }),
+        timeDifference: Math.abs(parseBuoyObservedAt(record.obsrvnDt) - targetTime.getTime()),
+        currentSpeed: numberOrNull(record.crsp),
+      }))
+      .filter((item) => item.currentSpeed !== null && Number.isFinite(item.timeDifference) && item.timeDifference <= 90 * 60 * 1000)
+      .sort((a, b) => a.distance - b.distance || a.timeDifference - b.timeDifference);
+    const value = matching[0]?.currentSpeed ?? null;
+    return value === null ? null : value / 100;
+  })]));
+}
+
 const firstBuoyWithValue = (
   buoys: BuoyItem[],
   value: (buoy: BuoyItem) => number | null,
@@ -221,12 +269,20 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
       fetchBuoy(station.code, khoaKey).catch(() => null),
     ))).filter((item): item is BuoyItem => item !== null);
     if (!buoyResults.length) return fallbackResponse("해양 관측 API에서 데이터를 받지 못해 예시 데이터를 표시합니다.");
-    const [kmaSeaObservations, history] = kmaSeaObservationKey
-      ? await Promise.all([
-        fetchKmaSeaObservations(kmaSeaObservationKey).catch(() => []),
-        fetchKmaSeaHistory(kmaSeaObservationKey).catch(() => ({})),
-      ])
-      : [[], {}];
+    const [kmaSeaObservations, kmaHistory, khoaCurrentHistory] = await Promise.all([
+      kmaSeaObservationKey ? fetchKmaSeaObservations(kmaSeaObservationKey).catch(() => []) : Promise.resolve([]),
+      kmaSeaObservationKey
+        ? fetchKmaSeaHistory(kmaSeaObservationKey).catch((): Record<string, MarineHistoryPoint[]> => ({}))
+        : Promise.resolve<Record<string, MarineHistoryPoint[]>>({}),
+      fetchKhoaCurrentHistory(khoaKey).catch((): Record<string, (number | null)[]> => ({})),
+    ]);
+    const history = Object.fromEntries(Object.entries(kmaHistory).map(([areaId, points]) => [
+      areaId,
+      points.map((point, index) => ({
+        ...point,
+        currentSpeed: khoaCurrentHistory[areaId]?.[index] ?? null,
+      })),
+    ]));
     const observations: MarineObservation[] = await Promise.all(SEA_AREAS.map(async (area) => {
       const nearbyBuoys = [...buoyResults].sort((a, b) => distance(area, a) - distance(area, b));
       const buoy = nearbyBuoys[0];

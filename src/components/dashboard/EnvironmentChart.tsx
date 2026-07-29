@@ -13,9 +13,10 @@ type MetricConfig = {
 };
 
 const METRICS: MetricConfig[] = [
-  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb", yDomain: [15, 30] },
+  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb", yDomain: [15, 28] },
   { key: "windSpeed", label: "풍속", unit: "m/s", color: "#0891b2" },
-  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", yDomain: [0, 1] },
+  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", yDomain: [0, 0.8] },
+  { key: "currentSpeed", label: "조류", unit: "m/s", color: "#ea580c" },
 ];
 
 const formatForDisplay = (value: number) => value.toFixed(1);
@@ -38,5 +39,5 @@ function MetricLineChart({ observation, history, metric }: { observation: Marine
 }
 
 export function EnvironmentChart({ observation, history }: { observation: MarineObservation; history: MarineHistoryPoint[] }) {
-  return <section className="surface-card mt-6" aria-labelledby="environment-chart-title"><div className="section-heading"><div><p className="eyebrow">데이터 시각화</p><h2 id="environment-chart-title">24시간 해양 환경 추세</h2><p className="chart-description">기상청 해양 종합관측의 실제 시간별 수온·풍속·파고 기록입니다.</p></div></div><div className="environment-chart-grid">{METRICS.map((metric) => <MetricLineChart key={metric.key} observation={observation} history={history} metric={metric} />)}</div><p className="chart-prototype-note">조류는 국립해양조사원 최신 관측값으로 조업·어종 점수에만 사용하며, 확인된 과거 실측 이력을 연결한 뒤 그래프에 추가합니다.</p></section>;
+  return <section className="surface-card mt-6" aria-labelledby="environment-chart-title"><div className="section-heading"><div><p className="eyebrow">데이터 시각화</p><h2 id="environment-chart-title">24시간 해양 환경 추세</h2><p className="chart-description">기상청·국립해양조사원 실제 시간별 관측 기록입니다.</p></div></div><div className="environment-chart-grid">{METRICS.map((metric) => <MetricLineChart key={metric.key} observation={observation} history={history} metric={metric} />)}</div><p className="chart-prototype-note">수온·풍속·파고는 기상청 해양 관측, 조류는 국립해양조사원 해양관측부이 기록을 사용합니다.</p></section>;
 }
