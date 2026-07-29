@@ -143,7 +143,7 @@ export default function BusanSeaMap() {
     const boundaryMap = new Map(
       SEA_AREA_BOUNDARIES.map((boundary) => [
         boundary.areaId,
-        boundary.coordinates,
+        boundary.polygons,
       ]),
     );
 

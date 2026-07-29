@@ -1,5 +1,6 @@
 import { writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
+import polygonClipping from "polygon-clipping";
 
 const OVERPASS_URL = "https://overpass-api.de/api/interpreter";
 const OUTPUT_PATH = fileURLToPath(
@@ -204,11 +205,39 @@ function southernArc(coordinates, start, end) {
     : backward;
 }
 
-function formatCoordinates(coordinates) {
-  return coordinates
+function closeRing(coordinates) {
+  const first = coordinates[0];
+  const last = coordinates.at(-1);
+  return coordinateKey(first) === coordinateKey(last)
+    ? coordinates
+    : coordinates.concat([first]);
+}
+
+function toClippingPolygon(coordinates) {
+  return [[
+    closeRing(coordinates).map(
+      ([latitude, longitude]) => [longitude, latitude],
+    ),
+  ]];
+}
+
+function formatPolygons(polygons) {
+  return polygons
     .map(
-      ([latitude, longitude]) =>
-        `      [${latitude.toFixed(7)}, ${longitude.toFixed(7)}],`,
+      (polygon) => `      [
+${polygon
+  .map(
+    (ring) => `        [
+${ring
+  .map(
+    ([longitude, latitude]) =>
+      `          [${latitude.toFixed(12)}, ${longitude.toFixed(12)}],`,
+  )
+  .join("\n")}
+        ],`,
+  )
+  .join("\n")}
+      ],`,
     )
     .join("\n");
 }
@@ -331,21 +360,43 @@ const areaIds = [
   "gijang",
 ];
 
+const nonOverlappingPolygons = {};
+let occupiedArea = null;
+
+for (const areaId of areaIds) {
+  const rawPolygon = toClippingPolygon(
+    shorelines[areaId].concat(outerBoundaries[areaId]),
+  );
+  const clippedPolygon = occupiedArea
+    ? polygonClipping.difference(rawPolygon, occupiedArea)
+    : rawPolygon;
+
+  if (clippedPolygon.length === 0) {
+    throw new Error(`${areaId} was completely removed while clipping overlaps`);
+  }
+
+  nonOverlappingPolygons[areaId] = clippedPolygon;
+  occupiedArea = occupiedArea
+    ? polygonClipping.union(occupiedArea, clippedPolygon)
+    : clippedPolygon;
+}
+
 const output = `export type SeaAreaBoundary = {
   areaId: string;
-  coordinates: Array<[latitude: number, longitude: number]>;
+  polygons: Array<Array<Array<[latitude: number, longitude: number]>>>;
 };
 
-// OpenStreetMap natural=coastline 좌표를 약 60~80m 허용 오차로 단순화한
-// 조업 참고 해역입니다. 법정 행정·조업·어업권 경계로 사용할 수 없습니다.
+// OpenStreetMap natural=coastline 좌표를 약 60~80m 허용 오차로 단순화하고
+// 인접 영역의 교차 면적을 제거한 조업 참고 해역입니다.
+// 법정 행정·조업·어업권 경계로 사용할 수 없습니다.
 // Source: https://www.openstreetmap.org/copyright
 export const SEA_AREA_BOUNDARIES: SeaAreaBoundary[] = [
 ${areaIds
   .map(
     (areaId) => `  {
     areaId: "${areaId}",
-    coordinates: [
-${formatCoordinates(shorelines[areaId].concat(outerBoundaries[areaId]))}
+    polygons: [
+${formatPolygons(nonOverlappingPolygons[areaId])}
     ],
   },`,
   )
