@@ -35,6 +35,8 @@ const SUMMARY_CONTENT: Record<MarineAlertSeverity, { label: string; description:
   unknown: { label: "데이터 확인 필요", description: "핵심 데이터가 없거나 신뢰하기 어려워 위급 상황을 충분히 판단할 수 없습니다." },
 };
 
+const displayMeasurement = (value: number) => value.toFixed(1);
+
 const createAdvisoryCheck = (observation: MarineObservation): MarineAlertCheck => {
   const wind = observation.windSpeed;
   const wave = observation.waveHeight;
@@ -49,18 +51,18 @@ const createAdvisoryCheck = (observation: MarineObservation): MarineAlertCheck =
 
 const createWindCheck = (wind: number | null): MarineAlertCheck => {
   if (wind === null) return { kind: "wind", title: "강풍", severity: "unknown", status: "데이터 없음", detail: "현재 풍속을 확인할 수 없습니다." };
-  if (wind >= 14) return { kind: "wind", title: "강풍", severity: "danger", status: "매우 강함", detail: `현재 풍속 ${wind}m/s · 풍랑주의보 기준 수준` };
-  if (wind >= 9) return { kind: "wind", title: "강풍", severity: "warning", status: "강한 바람", detail: `현재 풍속 ${wind}m/s · 조업과 항해 주의` };
-  if (wind >= 6) return { kind: "wind", title: "강풍", severity: "watch", status: "주의", detail: `현재 풍속 ${wind}m/s · 변화 관찰 필요` };
-  return { kind: "wind", title: "강풍", severity: "normal", status: "보통", detail: `현재 풍속 ${wind}m/s` };
+  if (wind >= 14) return { kind: "wind", title: "강풍", severity: "danger", status: "매우 강함", detail: `현재 풍속 ${displayMeasurement(wind)}m/s · 풍랑주의보 기준 수준` };
+  if (wind >= 9) return { kind: "wind", title: "강풍", severity: "warning", status: "강한 바람", detail: `현재 풍속 ${displayMeasurement(wind)}m/s · 조업과 항해 주의` };
+  if (wind >= 6) return { kind: "wind", title: "강풍", severity: "watch", status: "주의", detail: `현재 풍속 ${displayMeasurement(wind)}m/s · 변화 관찰 필요` };
+  return { kind: "wind", title: "강풍", severity: "normal", status: "보통", detail: `현재 풍속 ${displayMeasurement(wind)}m/s` };
 };
 
 const createWaveCheck = (wave: number | null): MarineAlertCheck => {
   if (wave === null) return { kind: "wave", title: "높은 파도", severity: "unknown", status: "데이터 없음", detail: "현재 파고를 확인할 수 없습니다." };
-  if (wave >= 3) return { kind: "wave", title: "높은 파도", severity: "danger", status: "매우 높음", detail: `현재 파고 ${wave}m · 풍랑주의보 기준 수준` };
-  if (wave >= 2) return { kind: "wave", title: "높은 파도", severity: "warning", status: "높은 물결", detail: `현재 파고 ${wave}m · 선박 안전 주의` };
-  if (wave >= 1.5) return { kind: "wave", title: "높은 파도", severity: "watch", status: "주의", detail: `현재 파고 ${wave}m · 변화 관찰 필요` };
-  return { kind: "wave", title: "높은 파도", severity: "normal", status: "낮음", detail: `현재 파고 ${wave}m` };
+  if (wave >= 3) return { kind: "wave", title: "높은 파도", severity: "danger", status: "매우 높음", detail: `현재 파고 ${displayMeasurement(wave)}m · 풍랑주의보 기준 수준` };
+  if (wave >= 2) return { kind: "wave", title: "높은 파도", severity: "warning", status: "높은 물결", detail: `현재 파고 ${displayMeasurement(wave)}m · 선박 안전 주의` };
+  if (wave >= 1.5) return { kind: "wave", title: "높은 파도", severity: "watch", status: "주의", detail: `현재 파고 ${displayMeasurement(wave)}m · 변화 관찰 필요` };
+  return { kind: "wave", title: "높은 파도", severity: "normal", status: "낮음", detail: `현재 파고 ${displayMeasurement(wave)}m` };
 };
 
 const createWeatherCheck = (weather: string | null): MarineAlertCheck => {

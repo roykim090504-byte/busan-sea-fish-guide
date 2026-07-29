@@ -19,8 +19,8 @@ type MetricConfig = {
 const METRICS: MetricConfig[] = [
   { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb", decimals: 1 },
   { key: "windSpeed", label: "풍속", unit: "m/s", color: "#0891b2", decimals: 1 },
-  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", decimals: 2 },
-  { key: "currentSpeed", label: "조류", unit: "m/s", color: "#ea580c", decimals: 2 },
+  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", decimals: 1 },
+  { key: "currentSpeed", label: "조류", unit: "m/s", color: "#ea580c", decimals: 1 },
 ];
 
 function MetricLineChart({ observation, metric }: { observation: MarineObservation; metric: MetricConfig }) {

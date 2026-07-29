@@ -18,8 +18,8 @@ const CHANGE_PATTERN = [-0.42, -0.56, -0.48, -0.25, 0.04, 0.28, 0.45, 0.36, 0.16
 const METRIC_SETTINGS: Record<EnvironmentMetricKey, { amplitude: number; decimals: number }> = {
   waterTemperature: { amplitude: 1.4, decimals: 1 },
   windSpeed: { amplitude: 3.2, decimals: 1 },
-  waveHeight: { amplitude: 0.45, decimals: 2 },
-  currentSpeed: { amplitude: 0.22, decimals: 2 },
+  waveHeight: { amplitude: 0.45, decimals: 1 },
+  currentSpeed: { amplitude: 0.22, decimals: 1 },
 };
 
 const formatKstTime = (date: Date) =>

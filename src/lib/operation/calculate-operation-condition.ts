@@ -61,6 +61,8 @@ const scoreFreshness = (hours: number) => scoreAlongCurve(hours, [
   [0, 100], [0.5, 97], [2, 85], [4, 65], [6, 45], [12, 20], [24, 0],
 ]);
 
+const displayMeasurement = (value: number) => value.toFixed(1);
+
 const scoreToLevel = (score: number): OperationConditionLevel =>
   score >= 88
     ? "very-good"
@@ -103,20 +105,20 @@ export function calculateOperationCondition(
   const reasons: string[] = [];
 
   if (observation.windSpeed === null) warnings.push("풍속 데이터가 없습니다.");
-  else if (observation.windSpeed >= 14) reasons.push(`풍속 ${observation.windSpeed}m/s로 풍랑주의보 기준 수준입니다.`);
-  else if (observation.windSpeed >= 9) reasons.push(`풍속 ${observation.windSpeed}m/s로 강한 바람에 대비가 필요합니다.`);
-  else if (observation.windSpeed >= 4) reasons.push(`풍속 ${observation.windSpeed}m/s로 약간 강한 바람에 주의가 필요합니다.`);
-  else reasons.push(`풍속 ${observation.windSpeed}m/s로 비교적 잔잔한 편입니다.`);
+  else if (observation.windSpeed >= 14) reasons.push(`풍속 ${displayMeasurement(observation.windSpeed)}m/s로 풍랑주의보 기준 수준입니다.`);
+  else if (observation.windSpeed >= 9) reasons.push(`풍속 ${displayMeasurement(observation.windSpeed)}m/s로 강한 바람에 대비가 필요합니다.`);
+  else if (observation.windSpeed >= 4) reasons.push(`풍속 ${displayMeasurement(observation.windSpeed)}m/s로 약간 강한 바람에 주의가 필요합니다.`);
+  else reasons.push(`풍속 ${displayMeasurement(observation.windSpeed)}m/s로 비교적 잔잔한 편입니다.`);
 
   if (observation.waveHeight === null) warnings.push("파고 데이터가 없습니다.");
-  else if (observation.waveHeight >= 3) reasons.push(`파고 ${observation.waveHeight}m로 풍랑주의보 기준 수준입니다.`);
-  else if (observation.waveHeight >= 2) reasons.push(`파고 ${observation.waveHeight}m로 높은 물결에 대비가 필요합니다.`);
-  else if (observation.waveHeight <= 0.6) reasons.push(`파고 ${observation.waveHeight}m로 비교적 낮은 편입니다.`);
-  else reasons.push(`파고 ${observation.waveHeight}m로 선박 규모에 따른 주의가 필요합니다.`);
+  else if (observation.waveHeight >= 3) reasons.push(`파고 ${displayMeasurement(observation.waveHeight)}m로 풍랑주의보 기준 수준입니다.`);
+  else if (observation.waveHeight >= 2) reasons.push(`파고 ${displayMeasurement(observation.waveHeight)}m로 높은 물결에 대비가 필요합니다.`);
+  else if (observation.waveHeight <= 0.6) reasons.push(`파고 ${displayMeasurement(observation.waveHeight)}m로 비교적 낮은 편입니다.`);
+  else reasons.push(`파고 ${displayMeasurement(observation.waveHeight)}m로 선박 규모에 따른 주의가 필요합니다.`);
 
   if (observation.currentSpeed === null) warnings.push("조류 데이터가 없습니다.");
-  else if (observation.currentSpeed > 1.2) reasons.push(`조류 ${observation.currentSpeed}m/s로 작업 부담이 커질 수 있습니다.`);
-  else reasons.push(`조류 ${observation.currentSpeed}m/s가 참고 범위 안에 있습니다.`);
+  else if (observation.currentSpeed > 1.2) reasons.push(`조류 ${displayMeasurement(observation.currentSpeed)}m/s로 작업 부담이 커질 수 있습니다.`);
+  else reasons.push(`조류 ${displayMeasurement(observation.currentSpeed)}m/s가 참고 범위 안에 있습니다.`);
 
   if (observation.weather === null || observation.weather.includes("미상")) warnings.push("날씨 상태 데이터가 없습니다.");
   else if (componentScores.weather <= 35) reasons.push(`${observation.weather} 상태로 시야와 갑판 작업에 주의가 필요합니다.`);
