@@ -109,4 +109,17 @@ describe("해역 지도 경계", () => {
       }
     }
   });
+
+  it("송도·영도·오륙도는 조각이나 내부 고리 없이 각각 하나의 영역이다", () => {
+    for (const areaId of ["songdo", "taejongdae", "oryukdo"]) {
+      const boundary = SEA_AREA_BOUNDARIES.find(
+        (item) => item.areaId === areaId,
+      );
+      expect(boundary?.polygons, `${areaId} 영역이 여러 조각입니다.`).toHaveLength(1);
+      expect(
+        boundary?.polygons[0],
+        `${areaId} 영역에 겹쳐 보일 수 있는 내부 고리가 있습니다.`,
+      ).toHaveLength(1);
+    }
+  });
 });

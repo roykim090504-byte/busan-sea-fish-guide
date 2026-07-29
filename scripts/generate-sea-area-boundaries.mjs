@@ -275,7 +275,7 @@ const gadeokCoast = pathBetween(
 );
 const taejongdaeCoast = southernArc(
   orderWays(selectWays(TAEJONGDAE_WAY_IDS)),
-  [35.0972695, 129.0502409],
+  [35.0751212, 129.0473781],
   [35.0800808, 129.0960733],
 );
 
@@ -287,7 +287,7 @@ const shorelines = {
   songdo: simplify(
     pathBetween(westCoast, [35.0830361, 128.9973142], [35.104384, 129.0446227]),
   ),
-  taejongdae: simplify(taejongdaeCoast),
+  taejongdae: simplify(taejongdaeCoast, 0.0015),
   oryukdo: simplify(
     pathBetween(westCoast, [35.104384, 129.0446227], [35.1249809, 129.1128067]),
   ),
@@ -328,7 +328,6 @@ const outerBoundaries = {
   oryukdo: [
     [35.1, 129.18],
     [35.01, 129.12],
-    [34.98, 129.05],
   ],
   gwangalli: [
     [35.14, 129.19],
@@ -360,14 +359,26 @@ const areaIds = [
   "gijang",
 ];
 
+const areaCoordinates = Object.fromEntries(
+  areaIds.map((areaId) => [
+    areaId,
+    shorelines[areaId].concat(outerBoundaries[areaId]),
+  ]),
+);
+
+// 오륙도 해역의 남서쪽 경계는 영도 남·동쪽 해안선을 역방향으로 공유합니다.
+// 이 경계를 공유하면 송도·영도·오륙도가 서로를 덮지 않고 연속해서 맞닿습니다.
+areaCoordinates.oryukdo = shorelines.oryukdo
+  .concat(outerBoundaries.oryukdo)
+  .concat([...shorelines.taejongdae].reverse());
+
 const nonOverlappingPolygons = {};
+const sharedCoastlineAreas = new Set(["oryukdo"]);
 let occupiedArea = null;
 
 for (const areaId of areaIds) {
-  const rawPolygon = toClippingPolygon(
-    shorelines[areaId].concat(outerBoundaries[areaId]),
-  );
-  const clippedPolygon = occupiedArea
+  const rawPolygon = toClippingPolygon(areaCoordinates[areaId]);
+  const clippedPolygon = occupiedArea && !sharedCoastlineAreas.has(areaId)
     ? polygonClipping.difference(rawPolygon, occupiedArea)
     : rawPolygon;
 
