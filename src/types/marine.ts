@@ -20,6 +20,7 @@ export type MarineObservation = {
   weather: string | null;
   source?: "live" | "sample";
   stationName?: string;
+  supplementedMetrics?: string[];
 };
 
 export type MarineApiResponse = {
