@@ -325,12 +325,6 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
     }));
     const warnings = observations.some((item) => [item.waterTemperature, item.windSpeed, item.waveHeight, item.currentSpeed].some((value) => value === null))
       ? ["일부 관측소에서 제공하지 않는 항목은 데이터 없음으로 표시합니다."] : [];
-    if (observations.some((item) => item.supplementedMetrics?.length)) {
-      warnings.push("일부 수온·파고·조류 값은 인근 관측소의 최신 관측값으로 보완했습니다.");
-    }
-    if (kmaSeaObservations.length) {
-      warnings.push("파고는 기상청 해상 관측과 국립해양조사원 관측 중 더 가까운 최신 관측소 값을 사용합니다.");
-    }
     return normalizeMarineApiResponseTimes({
       observations,
       history,
