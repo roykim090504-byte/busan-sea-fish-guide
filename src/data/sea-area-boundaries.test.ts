@@ -40,6 +40,7 @@ describe("해역 지도 경계", () => {
           area.latitude,
           area.longitude,
         ]),
+        `${area.id} 중심 좌표가 경계 밖에 있습니다.`,
       ).toBe(true);
     }
   });
