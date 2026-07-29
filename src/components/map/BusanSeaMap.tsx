@@ -155,11 +155,12 @@ export default function BusanSeaMap() {
 
       const isSelected = selected?.areaId === observation.areaId;
       const polygon = L.polygon(coordinates, {
-        color: isSelected ? "#082f49" : "#ffffff",
-        weight: isSelected ? 4 : 2,
+        color: isSelected ? "#082f49" : "#0c4a6e",
+        weight: isSelected ? 5 : 3,
         fillColor: AREA_LEVEL_COLORS[top.level],
-        fillOpacity: isSelected ? 0.46 : 0.24,
-        opacity: 0.95,
+        fillOpacity: isSelected ? 0.48 : 0.3,
+        opacity: 1,
+        lineJoin: "round",
       }).addTo(regionLayer);
 
       const regionTooltip = document.createElement("div");
@@ -308,7 +309,7 @@ export default function BusanSeaMap() {
           <i className="temperature-missing" />
           수온 자료 없음
         </span>
-        <small>해역 영역은 중심 좌표 기반의 참고 범위입니다.</small>
+        <small>해역 영역은 해안선을 따라 나눈 참고 범위입니다.</small>
       </div>
 
       <div className="map-area-buttons" aria-label="해역 바로 선택">
