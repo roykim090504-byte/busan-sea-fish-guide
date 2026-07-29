@@ -19,8 +19,16 @@ type BuoyItem = {
 };
 
 type KmaItem = { category: string; obsrValue: string };
+type KmaSeaObservation = {
+  latitude: number;
+  longitude: number;
+  observedAt: string;
+  stationName: string;
+  waveHeight: number;
+};
 const KHOA_URL = "https://apis.data.go.kr/1192136/twRecent/GetTWRecentApiService";
 const KMA_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
+const KMA_SEA_OBSERVATION_URL = "https://apihub.kma.go.kr/api/typ01/url/sea_obs.php";
 
 const numberOrNull = (value: unknown) => {
   const number = Number(value);
@@ -75,8 +83,44 @@ async function fetchWeather(latitude: number, longitude: number, key: string) {
   };
 }
 
+const kmaSeaObservationTime = (date = new Date()) => {
+  const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000);
+  return `${shifted.getUTCFullYear()}${String(shifted.getUTCMonth() + 1).padStart(2, "0")}${String(shifted.getUTCDate()).padStart(2, "0")}${String(shifted.getUTCHours()).padStart(2, "0")}00`;
+};
+
+const parseKmaSeaObservations = (text: string): KmaSeaObservation[] => text
+  .split(",=")
+  .map((record) => record.trim().replace(/\s+/g, " "))
+  .filter((record) => /^[A-Z],/.test(record))
+  .map((record) => record.split(",").map((value) => value.trim()))
+  .map(([type, observedAt, , stationName, longitude, latitude, waveHeight]) => ({
+    type,
+    observedAt,
+    stationName,
+    longitude: numberOrNull(longitude),
+    latitude: numberOrNull(latitude),
+    waveHeight: numberOrNull(waveHeight),
+  }))
+  .filter((item): item is KmaSeaObservation & { type: string } => (
+    item.type !== "" && item.observedAt !== "" && item.stationName !== "" &&
+    item.longitude !== null && item.latitude !== null && item.waveHeight !== null && item.waveHeight >= 0
+  ))
+  .map(({ type: _type, ...item }) => item);
+
+async function fetchKmaSeaObservations(key: string): Promise<KmaSeaObservation[]> {
+  const url = new URL(KMA_SEA_OBSERVATION_URL);
+  url.search = new URLSearchParams({ tm: kmaSeaObservationTime(), stn: "0", authKey: key }).toString();
+  const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } });
+  if (!response.ok) return [];
+  const text = new TextDecoder("euc-kr").decode(await response.arrayBuffer());
+  return parseKmaSeaObservations(text);
+}
+
 const distance = (a: { latitude: number; longitude: number }, b: { lat: number; lot: number }) =>
   Math.hypot(a.latitude - b.lat, (a.longitude - b.lot) * Math.cos(a.latitude * Math.PI / 180));
+
+const kmaSeaObservationDistance = (area: { latitude: number; longitude: number }, observation: KmaSeaObservation) =>
+  Math.hypot(area.latitude - observation.latitude, (area.longitude - observation.longitude) * Math.cos(area.latitude * Math.PI / 180));
 
 const firstBuoyWithValue = (
   buoys: BuoyItem[],
@@ -93,17 +137,26 @@ const fallbackResponse = (warning: string): MarineApiResponse => normalizeMarine
 export async function fetchLiveObservations(): Promise<MarineApiResponse> {
   const khoaKey = process.env.KHOA_API_KEY;
   const kmaKey = process.env.KMA_API_KEY;
+  const kmaSeaObservationKey = process.env.KMA_SEA_OBS_API_KEY;
   if (!khoaKey || !kmaKey) return fallbackResponse("API 키가 설정되지 않아 예시 데이터를 표시합니다.");
   try {
     const buoyResults = (await Promise.all(BUSAN_OBSERVATION_STATIONS.map((station) =>
       fetchBuoy(station.code, khoaKey).catch(() => null),
     ))).filter((item): item is BuoyItem => item !== null);
     if (!buoyResults.length) return fallbackResponse("해양 관측 API에서 데이터를 받지 못해 예시 데이터를 표시합니다.");
+    const kmaSeaObservations = kmaSeaObservationKey
+      ? await fetchKmaSeaObservations(kmaSeaObservationKey).catch(() => [])
+      : [];
     const observations: MarineObservation[] = await Promise.all(SEA_AREAS.map(async (area) => {
       const nearbyBuoys = [...buoyResults].sort((a, b) => distance(area, a) - distance(area, b));
       const buoy = nearbyBuoys[0];
       const waterTemperatureBuoy = firstBuoyWithValue(nearbyBuoys, (item) => numberOrNull(item.wtem));
       const waveHeightBuoy = firstBuoyWithValue(nearbyBuoys, (item) => numberOrNull(item.wvhgt));
+      const kmaWaveObservation = [...kmaSeaObservations]
+        .sort((a, b) => kmaSeaObservationDistance(area, a) - kmaSeaObservationDistance(area, b))[0] ?? null;
+      const shouldUseKmaWave = kmaWaveObservation !== null && (
+        waveHeightBuoy === null || kmaSeaObservationDistance(area, kmaWaveObservation) < distance(area, waveHeightBuoy)
+      );
       const currentSpeedBuoy = firstBuoyWithValue(nearbyBuoys, (item) => {
         const centimetersPerSecond = numberOrNull(item.crsp);
         return centimetersPerSecond === null ? null : centimetersPerSecond / 100;
@@ -124,7 +177,7 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
         airTemperature: weather?.airTemperature ?? numberOrNull(buoy.artmp),
         windSpeed: weather?.windSpeed ?? numberOrNull(buoy.wspd),
         windDirection: weather?.windDirection ?? directionLabel(numberOrNull(buoy.wndrct)),
-        waveHeight: waveHeightBuoy ? numberOrNull(waveHeightBuoy.wvhgt) : null,
+        waveHeight: shouldUseKmaWave ? kmaWaveObservation.waveHeight : (waveHeightBuoy ? numberOrNull(waveHeightBuoy.wvhgt) : null),
         currentSpeed: currentSpeedCentimetersPerSecond === null ? null : currentSpeedCentimetersPerSecond / 100,
         weather: weather?.weather ?? null,
         source: "live", stationName: buoy.obsvtrNm, supplementedMetrics,
@@ -134,6 +187,9 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
       ? ["일부 관측소에서 제공하지 않는 항목은 데이터 없음으로 표시합니다."] : [];
     if (observations.some((item) => item.supplementedMetrics?.length)) {
       warnings.push("일부 수온·파고·조류 값은 인근 관측소의 최신 관측값으로 보완했습니다.");
+    }
+    if (kmaSeaObservations.length) {
+      warnings.push("파고는 기상청 해상 관측과 국립해양조사원 관측 중 더 가까운 최신 관측소 값을 사용합니다.");
     }
     return normalizeMarineApiResponseTimes({
       observations,
