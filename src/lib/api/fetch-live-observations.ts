@@ -2,7 +2,7 @@ import { MARINE_OBSERVATIONS } from "@/data/marine-observations";
 import { BUSAN_OBSERVATION_STATIONS } from "@/data/observation-stations";
 import { SEA_AREAS } from "@/data/sea-areas";
 import { normalizeMarineApiResponseTimes } from "@/lib/time/normalize-marine-time";
-import type { MarineApiResponse, MarineObservation } from "@/types/marine";
+import type { MarineApiResponse, MarineHistoryPoint, MarineObservation } from "@/types/marine";
 import { toKmaGrid } from "./kma-grid";
 
 type BuoyItem = {
@@ -26,6 +26,8 @@ type KmaSeaObservation = {
   observedAt: string;
   stationName: string;
   waveHeight: number;
+  windSpeed: number | null;
+  waterTemperature: number | null;
 };
 const KHOA_URL = "https://apis.data.go.kr/1192136/twRecent/GetTWRecentApiService";
 const KMA_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
@@ -133,13 +135,15 @@ const parseKmaSeaObservations = (text: string): KmaSeaObservation[] => text
   .map((record) => record.trim().replace(/\s+/g, " "))
   .filter((record) => /^[A-Z],/.test(record))
   .map((record) => record.split(",").map((value) => value.trim()))
-  .map(([type, observedAt, , stationName, longitude, latitude, waveHeight]) => ({
+  .map(([type, observedAt, , stationName, longitude, latitude, waveHeight, , windSpeed, , waterTemperature]) => ({
     type,
     observedAt,
     stationName,
     longitude: numberOrNull(longitude),
     latitude: numberOrNull(latitude),
     waveHeight: numberOrNull(waveHeight),
+    windSpeed: numberOrNull(windSpeed),
+    waterTemperature: numberOrNull(waterTemperature),
   }))
   .filter((item): item is KmaSeaObservation & { type: string } => (
     item.type !== "" && item.observedAt !== "" && item.stationName !== "" &&
@@ -147,13 +151,42 @@ const parseKmaSeaObservations = (text: string): KmaSeaObservation[] => text
   ))
   .map(({ type: _type, ...item }) => item);
 
-async function fetchKmaSeaObservations(key: string): Promise<KmaSeaObservation[]> {
+async function fetchKmaSeaObservations(key: string, date = new Date()): Promise<KmaSeaObservation[]> {
   const url = new URL(KMA_SEA_OBSERVATION_URL);
-  url.search = new URLSearchParams({ tm: kmaSeaObservationTime(), stn: "0", authKey: key }).toString();
+  url.search = new URLSearchParams({ tm: kmaSeaObservationTime(date), stn: "0", authKey: key }).toString();
   const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } });
   if (!response.ok) return [];
   const text = new TextDecoder("euc-kr").decode(await response.arrayBuffer());
   return parseKmaSeaObservations(text);
+}
+
+const kmaObservedAtToIso = (value: string) => {
+  const match = value.match(/^(\d{4})(\d{2})(\d{2})(\d{2})(\d{2})$/);
+  if (!match) return new Date().toISOString();
+  const [, year, month, day, hour, minute] = match;
+  return new Date(Date.UTC(Number(year), Number(month) - 1, Number(day), Number(hour) - 9, Number(minute))).toISOString();
+};
+
+async function fetchKmaSeaHistory(key: string): Promise<Record<string, MarineHistoryPoint[]>> {
+  const latest = new Date();
+  latest.setMinutes(0, 0, 0);
+  const requestTimes = Array.from({ length: 13 }, (_, index) => new Date(latest.getTime() - (12 - index) * 2 * 60 * 60 * 1000));
+  const snapshots = await Promise.all(requestTimes.map(async (time) => ({
+    time,
+    observations: await fetchKmaSeaObservations(key, time).catch(() => []),
+  })));
+
+  return Object.fromEntries(SEA_AREAS.map((area) => [area.id, snapshots.map(({ time, observations }) => {
+    const nearest = [...observations]
+      .sort((a, b) => kmaSeaObservationDistance(area, a) - kmaSeaObservationDistance(area, b))[0] ?? null;
+    return {
+      observedAt: nearest ? kmaObservedAtToIso(nearest.observedAt) : time.toISOString(),
+      waterTemperature: nearest?.waterTemperature ?? null,
+      windSpeed: nearest?.windSpeed ?? null,
+      waveHeight: nearest?.waveHeight ?? null,
+      currentSpeed: null,
+    };
+  })]));
 }
 
 const distance = (a: { latitude: number; longitude: number }, b: { lat: number; lot: number }) =>
@@ -169,6 +202,7 @@ const firstBuoyWithValue = (
 
 const fallbackResponse = (warning: string): MarineApiResponse => normalizeMarineApiResponseTimes({
   observations: MARINE_OBSERVATIONS.map((item) => ({ ...item, source: "sample" as const })),
+  history: {},
   source: "sample",
   fetchedAt: new Date().toISOString(),
   warnings: [warning],
@@ -184,9 +218,12 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
       fetchBuoy(station.code, khoaKey).catch(() => null),
     ))).filter((item): item is BuoyItem => item !== null);
     if (!buoyResults.length) return fallbackResponse("해양 관측 API에서 데이터를 받지 못해 예시 데이터를 표시합니다.");
-    const kmaSeaObservations = kmaSeaObservationKey
-      ? await fetchKmaSeaObservations(kmaSeaObservationKey).catch(() => [])
-      : [];
+    const [kmaSeaObservations, history] = kmaSeaObservationKey
+      ? await Promise.all([
+        fetchKmaSeaObservations(kmaSeaObservationKey).catch(() => []),
+        fetchKmaSeaHistory(kmaSeaObservationKey).catch(() => ({})),
+      ])
+      : [[], {}];
     const observations: MarineObservation[] = await Promise.all(SEA_AREAS.map(async (area) => {
       const nearbyBuoys = [...buoyResults].sort((a, b) => distance(area, a) - distance(area, b));
       const buoy = nearbyBuoys[0];
@@ -233,6 +270,7 @@ export async function fetchLiveObservations(): Promise<MarineApiResponse> {
     }
     return normalizeMarineApiResponseTimes({
       observations,
+      history,
       source: "live",
       fetchedAt: new Date().toISOString(),
       warnings,

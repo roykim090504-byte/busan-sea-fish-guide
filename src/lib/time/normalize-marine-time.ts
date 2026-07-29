@@ -19,5 +19,9 @@ export const normalizeMarineApiResponseTimes = (
 ): MarineApiResponse => ({
   ...response,
   observations: response.observations.map(normalizeMarineObservationTime),
+  history: Object.fromEntries(Object.entries(response.history).map(([areaId, points]) => [
+    areaId,
+    points.map((point) => ({ ...point, observedAt: floorToWholeHour(point.observedAt) })),
+  ])),
   fetchedAt: floorToWholeHour(response.fetchedAt),
 });

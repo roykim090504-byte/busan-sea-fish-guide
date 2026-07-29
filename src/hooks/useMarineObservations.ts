@@ -7,6 +7,7 @@ import type { MarineApiResponse } from "@/types/marine";
 
 const initial = normalizeMarineApiResponseTimes({
   observations: MARINE_OBSERVATIONS.map((item) => ({ ...item, source: "sample" })),
+  history: {},
   source: "sample",
   fetchedAt: new Date().toISOString(),
   warnings: [],

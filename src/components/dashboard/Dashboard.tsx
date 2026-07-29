@@ -19,7 +19,7 @@ import { QuickViewDashboard } from "./QuickViewDashboard";
 export function Dashboard() {
   const [areaId, setAreaId] = useState(DEFAULT_AREA_ID);
   const [viewMode, setViewMode] = useState<"quick" | "detail">("detail");
-  const { observations, source, warnings, loading } = useMarineObservations();
+  const { observations, history, source, warnings, loading } = useMarineObservations();
   const observation =
     observations.find((item) => item.areaId === areaId) ?? observations[0];
   const predictions = useMemo(
@@ -133,7 +133,7 @@ export function Dashboard() {
               predictions={predictions}
               observation={observation}
             />
-            <EnvironmentChart observation={observation} />
+            <EnvironmentChart observation={observation} history={history[observation.areaId] ?? []} />
           </>
         )}
 

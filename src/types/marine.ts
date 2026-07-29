@@ -23,8 +23,17 @@ export type MarineObservation = {
   supplementedMetrics?: string[];
 };
 
+export type MarineHistoryPoint = {
+  observedAt: string;
+  waterTemperature: number | null;
+  windSpeed: number | null;
+  waveHeight: number | null;
+  currentSpeed: number | null;
+};
+
 export type MarineApiResponse = {
   observations: MarineObservation[];
+  history: Record<string, MarineHistoryPoint[]>;
   source: "live" | "sample";
   fetchedAt: string;
   warnings: string[];
