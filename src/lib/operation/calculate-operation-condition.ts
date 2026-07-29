@@ -14,36 +14,33 @@ const OPERATION_WEIGHTS: Record<OperationScoreKey, number> = {
   freshness: 0.05,
 };
 
-const scoreWind = (value: number | null) => {
+type ScorePoint = readonly [value: number, score: number];
+
+const scoreAlongCurve = (value: number | null, points: readonly ScorePoint[]) => {
   if (value === null) return 0;
-  if (value < 3) return 100;
-  if (value < 4) return 95;
-  if (value < 6) return 80;
-  if (value < 9) return 55;
-  if (value < 12) return 25;
-  if (value < 14) return 10;
-  return 0;
+  if (value <= points[0][0]) return points[0][1];
+  for (let index = 1; index < points.length; index += 1) {
+    const [upperValue, upperScore] = points[index];
+    const [lowerValue, lowerScore] = points[index - 1];
+    if (value <= upperValue) {
+      const ratio = (value - lowerValue) / (upperValue - lowerValue);
+      return lowerScore + (upperScore - lowerScore) * ratio;
+    }
+  }
+  return points[points.length - 1][1];
 };
 
-const scoreWave = (value: number | null) => {
-  if (value === null) return 0;
-  if (value <= 0.3) return 100;
-  if (value <= 0.6) return 90;
-  if (value <= 1) return 75;
-  if (value < 1.5) return 55;
-  if (value < 2) return 35;
-  if (value < 3) return 15;
-  return 0;
-};
+const scoreWind = (value: number | null) => scoreAlongCurve(value, [
+  [0, 96], [3, 88], [6, 74], [9, 54], [12, 32], [14, 14], [18, 0],
+]);
 
-const scoreCurrent = (value: number | null) => {
-  if (value === null) return 0;
-  if (value <= 0.3) return 95;
-  if (value <= 0.6) return 80;
-  if (value <= 1) return 55;
-  if (value <= 1.5) return 30;
-  return 15;
-};
+const scoreWave = (value: number | null) => scoreAlongCurve(value, [
+  [0, 96], [0.3, 91], [0.6, 84], [1, 70], [1.5, 52], [2, 34], [3, 12], [4, 0],
+]);
+
+const scoreCurrent = (value: number | null) => scoreAlongCurve(value, [
+  [0, 92], [0.3, 87], [0.6, 75], [1, 56], [1.5, 34], [2, 16], [3, 0],
+]);
 
 const scoreWeather = (weather: string | null) => {
   if (weather === null || weather.includes("미상")) return 0;
@@ -60,13 +57,9 @@ const observationAgeHours = (observedAt: string, now: Date) => {
   return Math.max(0, (now.getTime() - observedTime) / (60 * 60 * 1000));
 };
 
-const scoreFreshness = (hours: number) => {
-  if (hours <= 0.5) return 100;
-  if (hours <= 2) return 85;
-  if (hours <= 4) return 60;
-  if (hours <= 6) return 35;
-  return 0;
-};
+const scoreFreshness = (hours: number) => scoreAlongCurve(hours, [
+  [0, 100], [0.5, 97], [2, 85], [4, 65], [6, 45], [12, 20], [24, 0],
+]);
 
 const scoreToLevel = (score: number): OperationConditionLevel =>
   score >= 88
@@ -131,7 +124,7 @@ export function calculateOperationCondition(
   const criticalMarineCondition =
     (observation.windSpeed !== null && observation.windSpeed >= 14)
     || (observation.waveHeight !== null && observation.waveHeight >= 3);
-  if (criticalMarineCondition) score = Math.min(score, 27);
+  if (criticalMarineCondition) score *= 0.35;
   else {
     const strongCondition =
       (observation.windSpeed !== null && observation.windSpeed >= 9)
@@ -142,28 +135,28 @@ export function calculateOperationCondition(
     const lessCalmCondition =
       (observation.windSpeed !== null && observation.windSpeed >= 4)
       || (observation.waveHeight !== null && observation.waveHeight > 0.6);
-    if (strongCondition) score = Math.min(score, 51);
-    else if (cautionCondition) score = Math.min(score, 71);
-    else if (lessCalmCondition) score = Math.min(score, 87);
+    if (strongCondition) score *= 0.65;
+    else if (cautionCondition) score *= 0.82;
+    else if (lessCalmCondition) score *= 0.94;
   }
 
   const missingWindOrWave = [observation.windSpeed, observation.waveHeight].filter((value) => value === null).length;
-  if (missingWindOrWave === 2) score = Math.min(score, 27);
-  else if (missingWindOrWave === 1) score = Math.min(score, 51);
+  if (missingWindOrWave === 2) score *= 0.35;
+  else if (missingWindOrWave === 1) score *= 0.7;
 
   if (ageHours > 12) {
-    score = Math.min(score, 27);
+    score = Math.min(score * 0.35, 27);
     warnings.push("관측 시각이 오래되어 최신 상황과 다를 수 있습니다.");
   } else if (ageHours > 6) {
-    score = Math.min(score, 51);
+    score *= 0.7;
     warnings.push("관측 시각이 6시간 이상 지나 최신 상황과 다를 수 있습니다.");
   }
   if (observation.source === "sample") {
-    score = Math.min(score, 51);
+    score = Math.min(score * 0.7, 51);
     warnings.push("예시 데이터이므로 실제 출항 판단에 사용할 수 없습니다.");
   }
 
-  score = clamp(score);
+  score = clamp(Math.round(score));
   const level = scoreToLevel(score);
   return {
     score,
