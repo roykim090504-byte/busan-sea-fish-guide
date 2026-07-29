@@ -31,15 +31,15 @@ const scoreAlongCurve = (value: number | null, points: readonly ScorePoint[]) =>
 };
 
 const scoreWind = (value: number | null) => scoreAlongCurve(value, [
-  [0, 96], [3, 88], [6, 74], [9, 54], [12, 32], [14, 14], [18, 0],
+  [0, 98], [3, 93], [6, 82], [9, 62], [12, 38], [14, 16], [18, 0],
 ]);
 
 const scoreWave = (value: number | null) => scoreAlongCurve(value, [
-  [0, 96], [0.3, 91], [0.6, 84], [1, 70], [1.5, 52], [2, 34], [3, 12], [4, 0],
+  [0, 98], [0.3, 94], [0.6, 89], [1, 78], [1.5, 62], [2, 42], [3, 14], [4, 0],
 ]);
 
 const scoreCurrent = (value: number | null) => scoreAlongCurve(value, [
-  [0, 92], [0.3, 87], [0.6, 75], [1, 56], [1.5, 34], [2, 16], [3, 0],
+  [0, 95], [0.3, 91], [0.6, 82], [1, 66], [1.5, 42], [2, 20], [3, 0],
 ]);
 
 const scoreWeather = (weather: string | null) => {
@@ -137,9 +137,9 @@ export function calculateOperationCondition(
     const lessCalmCondition =
       (observation.windSpeed !== null && observation.windSpeed >= 4)
       || (observation.waveHeight !== null && observation.waveHeight > 0.6);
-    if (strongCondition) score *= 0.65;
-    else if (cautionCondition) score *= 0.82;
-    else if (lessCalmCondition) score *= 0.94;
+    if (strongCondition) score *= 0.6;
+    else if (cautionCondition) score *= 0.84;
+    else if (lessCalmCondition) score *= 0.95;
   }
 
   const missingWindOrWave = [observation.windSpeed, observation.waveHeight].filter((value) => value === null).length;
