@@ -36,7 +36,7 @@ const KMA_SEA_OBSERVATION_URL = "https://apihub.kma.go.kr/api/typ01/url/sea_obs.
 
 const numberOrNull = (value: unknown) => {
   const number = Number(value);
-  return value === null || value === undefined || value === "" || !Number.isFinite(number) ? null : number;
+  return value === null || value === undefined || value === "" || !Number.isFinite(number) || number === -99 ? null : number;
 };
 
 const directionLabel = (degrees: number | null) => {
@@ -177,12 +177,15 @@ async function fetchKmaSeaHistory(key: string): Promise<Record<string, MarineHis
   })));
 
   return Object.fromEntries(SEA_AREAS.map((area) => [area.id, snapshots.map(({ time, observations }) => {
-    const nearest = [...observations]
-      .sort((a, b) => kmaSeaObservationDistance(area, a) - kmaSeaObservationDistance(area, b))[0] ?? null;
+    const nearby = [...observations]
+      .sort((a, b) => kmaSeaObservationDistance(area, a) - kmaSeaObservationDistance(area, b));
+    const nearest = nearby[0] ?? null;
+    const windObservation = nearby.find((item) => item.windSpeed !== null) ?? null;
+    const waterTemperatureObservation = nearby.find((item) => item.waterTemperature !== null) ?? null;
     return {
       observedAt: nearest ? kmaObservedAtToIso(nearest.observedAt) : time.toISOString(),
-      waterTemperature: nearest?.waterTemperature ?? null,
-      windSpeed: nearest?.windSpeed ?? null,
+      waterTemperature: waterTemperatureObservation?.waterTemperature ?? null,
+      windSpeed: windObservation?.windSpeed ?? null,
       waveHeight: nearest?.waveHeight ?? null,
       currentSpeed: null,
     };
