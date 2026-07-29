@@ -19,6 +19,7 @@ type BuoyItem = {
 };
 
 type KmaItem = { category: string; obsrValue: string };
+type KmaForecastItem = { category: string; fcstDate: string; fcstTime: string; fcstValue: string };
 type KmaSeaObservation = {
   latitude: number;
   longitude: number;
@@ -28,6 +29,7 @@ type KmaSeaObservation = {
 };
 const KHOA_URL = "https://apis.data.go.kr/1192136/twRecent/GetTWRecentApiService";
 const KMA_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtNcst";
+const KMA_FORECAST_URL = "https://apis.data.go.kr/1360000/VilageFcstInfoService_2.0/getUltraSrtFcst";
 const KMA_SEA_OBSERVATION_URL = "https://apihub.kma.go.kr/api/typ01/url/sea_obs.php";
 
 const numberOrNull = (value: unknown) => {
@@ -44,6 +46,19 @@ const directionLabel = (degrees: number | null) => {
 const weatherLabel = (pty: string | undefined) => ({
   "0": "강수 없음", "1": "비", "2": "비·눈", "3": "눈", "5": "빗방울", "6": "빗방울·눈날림", "7": "눈날림",
 }[pty ?? ""] ?? "상태 미상");
+
+const skyLabel = (sky: string | undefined) => ({
+  "1": "맑음",
+  "3": "구름 많음",
+  "4": "흐림",
+}[sky ?? ""]);
+
+const detailedWeatherLabel = (pty: string | undefined, sky: string | undefined) => {
+  if (!pty || pty === "0") return skyLabel(sky) ?? weatherLabel(pty);
+  const precipitation = weatherLabel(pty);
+  const skyCondition = skyLabel(sky);
+  return skyCondition && skyCondition !== "맑음" ? `${skyCondition} ${precipitation}` : precipitation;
+};
 
 const kstParts = (date = new Date()) => {
   const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000);
@@ -71,21 +86,46 @@ async function fetchWeather(latitude: number, longitude: number, key: string) {
     serviceKey: key, pageNo: "1", numOfRows: "100", dataType: "JSON",
     base_date: base.date, base_time: base.time, nx: String(nx), ny: String(ny),
   }).toString();
-  const response = await fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } });
+  const forecastBase = kstForecastParts();
+  const forecastUrl = new URL(KMA_FORECAST_URL);
+  forecastUrl.search = new URLSearchParams({
+    serviceKey: key, pageNo: "1", numOfRows: "300", dataType: "JSON",
+    base_date: forecastBase.date, base_time: forecastBase.time, nx: String(nx), ny: String(ny),
+  }).toString();
+  const [response, forecastResponse] = await Promise.all([
+    fetch(url, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } }),
+    fetch(forecastUrl, { signal: AbortSignal.timeout(8000), next: { revalidate: 600 } }),
+  ]);
   if (!response.ok) return null;
   const json = await response.json() as { response?: { body?: { items?: { item?: KmaItem[] } } } };
   const values = Object.fromEntries((json.response?.body?.items?.item ?? []).map((item) => [item.category, item.obsrValue]));
+  const forecastJson = forecastResponse.ok
+    ? await forecastResponse.json() as { response?: { body?: { items?: { item?: KmaForecastItem[] } } } }
+    : undefined;
+  const forecastItems = forecastJson?.response?.body?.items?.item ?? [];
+  const nextForecastTime = [...new Set(forecastItems.map((item) => `${item.fcstDate}${item.fcstTime}`))].sort()[0];
+  const forecastValues = Object.fromEntries(forecastItems
+    .filter((item) => `${item.fcstDate}${item.fcstTime}` === nextForecastTime)
+    .map((item) => [item.category, item.fcstValue]));
   return {
     airTemperature: numberOrNull(values.T1H),
     windSpeed: numberOrNull(values.WSD),
     windDirection: directionLabel(numberOrNull(values.VEC)),
-    weather: weatherLabel(values.PTY),
+    weather: detailedWeatherLabel(values.PTY, forecastValues.SKY),
   };
 }
 
 const kmaSeaObservationTime = (date = new Date()) => {
   const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000);
   return `${shifted.getUTCFullYear()}${String(shifted.getUTCMonth() + 1).padStart(2, "0")}${String(shifted.getUTCDate()).padStart(2, "0")}${String(shifted.getUTCHours()).padStart(2, "0")}00`;
+};
+
+const kstForecastParts = (date = new Date()) => {
+  const shifted = new Date(date.getTime() + 9 * 60 * 60 * 1000 - 45 * 60 * 1000);
+  return {
+    date: `${shifted.getUTCFullYear()}${String(shifted.getUTCMonth() + 1).padStart(2, "0")}${String(shifted.getUTCDate()).padStart(2, "0")}`,
+    time: `${String(shifted.getUTCHours()).padStart(2, "0")}30`,
+  };
 };
 
 const parseKmaSeaObservations = (text: string): KmaSeaObservation[] => text
