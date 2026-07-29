@@ -13,22 +13,25 @@ type MetricConfig = {
   label: string;
   unit: string;
   color: string;
-  decimals: number;
 };
 
 const METRICS: MetricConfig[] = [
-  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb", decimals: 1 },
-  { key: "windSpeed", label: "풍속", unit: "m/s", color: "#0891b2", decimals: 1 },
-  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", decimals: 1 },
-  { key: "currentSpeed", label: "조류", unit: "m/s", color: "#ea580c", decimals: 1 },
+  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb" },
+  { key: "windSpeed", label: "풍속", unit: "m/s", color: "#0891b2" },
+  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed" },
+  { key: "currentSpeed", label: "조류", unit: "m/s", color: "#ea580c" },
 ];
+
+const formatForDisplay = (value: number) => value.toFixed(1);
 
 function MetricLineChart({ observation, metric }: { observation: MarineObservation; metric: MetricConfig }) {
   const data = createTwoHourTrend(observation, metric.key);
-  const average = calculateTrendAverage(data, metric.decimals);
+  const average = calculateTrendAverage(data);
   const latest = observation[metric.key];
+  const averageLabel = average === null ? null : formatForDisplay(average);
+  const latestLabel = latest === null ? null : formatForDisplay(latest);
 
-  return <article className="environment-chart-card" aria-labelledby={`${metric.key}-chart-title`}><div className="environment-chart-header"><div><p>{metric.label}</p><h3 id={`${metric.key}-chart-title`}>{average === null ? "평균 데이터 없음" : `평균 ${average}${metric.unit}`}</h3></div><span style={{ color: metric.color }}>{latest === null ? "현재값 없음" : `현재 ${latest}${metric.unit}`}</span></div>{data.length === 0 ? <div className="chart-empty">표시할 {metric.label} 데이터가 없습니다.</div> : <><div className="environment-line-chart" aria-label={`${metric.label} 2시간 간격 선그래프`}><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{ top: 12, right: 12, bottom: 0, left: -16 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dce8ed" /><XAxis dataKey="time" interval={1} tickLine={false} axisLine={false} fontSize={11} /><YAxis domain={["auto", "auto"]} tickLine={false} axisLine={false} fontSize={11} width={44} /><Tooltip formatter={(value) => [`${value}${metric.unit}`, metric.label]} labelFormatter={(label) => `${label} 기준`} /><ReferenceLine y={average ?? undefined} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.45} /><Line type="monotone" dataKey="value" name={metric.label} stroke={metric.color} strokeWidth={3} dot={{ r: 2, fill: metric.color, strokeWidth: 0 }} activeDot={{ r: 5 }} /></LineChart></ResponsiveContainer></div><p className="chart-average-note"><i style={{ background: metric.color }} />점선은 24시간 참고 평균 {average}{metric.unit}입니다.</p><ul className="sr-only">{data.map((point) => <li key={point.observedAt}>{point.time} {point.value}{metric.unit}</li>)}</ul></>}</article>;
+  return <article className="environment-chart-card" aria-labelledby={`${metric.key}-chart-title`}><div className="environment-chart-header"><div><p>{metric.label}</p><h3 id={`${metric.key}-chart-title`}>{averageLabel === null ? "평균 데이터 없음" : `평균 ${averageLabel}${metric.unit}`}</h3></div><span style={{ color: metric.color }}>{latestLabel === null ? "현재값 없음" : `현재 ${latestLabel}${metric.unit}`}</span></div>{data.length === 0 ? <div className="chart-empty">표시할 {metric.label} 데이터가 없습니다.</div> : <><div className="environment-line-chart" aria-label={`${metric.label} 2시간 간격 선그래프`}><ResponsiveContainer width="100%" height="100%"><LineChart data={data} margin={{ top: 12, right: 12, bottom: 0, left: -16 }}><CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#dce8ed" /><XAxis dataKey="time" interval={1} tickLine={false} axisLine={false} fontSize={11} /><YAxis domain={["auto", "auto"]} tickLine={false} axisLine={false} fontSize={11} width={44} /><Tooltip formatter={(value) => [`${formatForDisplay(Number(value))}${metric.unit}`, metric.label]} labelFormatter={(label) => `${label} 기준`} /><ReferenceLine y={average ?? undefined} stroke={metric.color} strokeDasharray="4 4" strokeOpacity={0.45} /><Line type="monotone" dataKey="value" name={metric.label} stroke={metric.color} strokeWidth={3} dot={{ r: 2, fill: metric.color, strokeWidth: 0 }} activeDot={{ r: 5 }} /></LineChart></ResponsiveContainer></div><p className="chart-average-note"><i style={{ background: metric.color }} />점선은 24시간 참고 평균 {averageLabel}{metric.unit}입니다.</p><ul className="sr-only">{data.map((point) => <li key={point.observedAt}>{point.time} {formatForDisplay(point.value)}{metric.unit}</li>)}</ul></>}</article>;
 }
 
 export function EnvironmentChart({ observation }: { observation: MarineObservation }) {

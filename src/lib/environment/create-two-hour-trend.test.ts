@@ -27,14 +27,20 @@ describe("2시간 간격 환경 추세", () => {
     expect(points.at(-1)?.value).toBe(observation.waterTemperature);
   });
 
+  it("그래프 데이터는 표시용 반올림 없이 원본 정밀도를 유지한다", () => {
+    const points = createTwoHourTrend(observation, "currentSpeed");
+    expect(points[0]?.value).toBeCloseTo(0.4576, 10);
+    expect(points.at(-1)?.value).toBe(observation.currentSpeed);
+  });
+
   it("데이터가 없으면 빈 추세와 null 평균을 반환한다", () => {
     const points = createTwoHourTrend({ ...observation, currentSpeed: null }, "currentSpeed");
     expect(points).toEqual([]);
-    expect(calculateTrendAverage(points, 2)).toBeNull();
+    expect(calculateTrendAverage(points)).toBeNull();
   });
 
-  it("추세 평균을 지정한 소수 자릿수로 계산한다", () => {
+  it("추세 평균은 원본 정밀도로 계산한다", () => {
     const points = createTwoHourTrend(observation, "waveHeight");
-    expect(calculateTrendAverage(points, 2)).toBeTypeOf("number");
+    expect(calculateTrendAverage(points)).toBeTypeOf("number");
   });
 });
