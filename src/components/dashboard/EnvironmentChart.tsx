@@ -13,9 +13,9 @@ type MetricConfig = {
 };
 
 const METRICS: MetricConfig[] = [
-  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb" },
+  { key: "waterTemperature", label: "수온", unit: "°C", color: "#2563eb", yDomain: [15, 30] },
   { key: "windSpeed", label: "풍속", unit: "m/s", color: "#0891b2" },
-  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", yDomain: [0, 2] },
+  { key: "waveHeight", label: "파고", unit: "m", color: "#7c3aed", yDomain: [0, 1] },
 ];
 
 const formatForDisplay = (value: number) => value.toFixed(1);
