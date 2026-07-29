@@ -61,8 +61,16 @@ a { text-decoration: none; }
 .operation-score { display: flex; align-items: baseline; color: var(--operation); }
 .operation-score strong { font-size: 40px; line-height: 1; font-weight: 950; }.operation-score span { margin-left: 3px; color: #72848c; font-size: 12px; font-weight: 800; }
 .operation-scale { display: grid; grid-template-columns: repeat(5, 1fr); border-top: 1px solid #e4ecef; border-bottom: 1px solid #e4ecef; background: #f4f8fa; }
-.operation-scale span { padding: 10px 5px; color: #78909a; text-align: center; font-size: 11px; font-weight: 850; }
-.operation-scale span.active { background: var(--operation); color: white; }
+.operation-scale span { --scale-color: #64748b; display: flex; align-items: center; justify-content: center; gap: 5px; padding: 10px 5px; border-right: 1px solid rgba(255,255,255,.8); color: var(--scale-color); text-align: center; font-size: 11px; font-weight: 900; }
+.operation-scale span:last-child { border-right: 0; }
+.operation-scale span i { width: 7px; height: 7px; flex: 0 0 auto; border-radius: 50%; background: var(--scale-color); box-shadow: 0 0 0 2px rgba(255,255,255,.75); }
+.operation-scale-very-good { --scale-color: #047857 !important; background: #d1fae5; }
+.operation-scale-good { --scale-color: #0369a1 !important; background: #dbeafe; }
+.operation-scale-caution { --scale-color: #a16207 !important; background: #fef3c7; }
+.operation-scale-difficult { --scale-color: #c2410c !important; background: #ffedd5; }
+.operation-scale-reconsider { --scale-color: #b91c1c !important; background: #fee2e2; }
+.operation-scale span.active { position: relative; z-index: 1; background: var(--operation); color: white; box-shadow: inset 0 0 0 3px rgba(255,255,255,.72), 0 0 0 2px var(--operation); }
+.operation-scale span.active i { background: white; box-shadow: 0 0 0 2px color-mix(in srgb, var(--operation) 55%, white); }
 .operation-content { display: grid; grid-template-columns: .8fr 1.2fr; gap: 20px; padding: 20px 24px; }
 .operation-metrics { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
 .operation-metrics > div { display: grid; grid-template-columns: auto 1fr auto; gap: 7px; align-items: center; border-radius: 12px; background: #f3f8f9; padding: 10px; color: var(--operation); }
